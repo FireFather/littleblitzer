@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine.h"
 
 enum PIPES { READ, WRITE };
 //enum {WHITE, BLACK};
@@ -61,13 +62,11 @@ typedef struct {
 	char *sSAN;	// SAN string of moves for PGN output
 } TResult;
 
-
 typedef CRITICAL_SECTION	tLock;
 #define LockInit(x, y)		InitializeCriticalSection(x)
 #define Lock(x)				EnterCriticalSection(x)
 #define Unlock(x)			LeaveCriticalSection(x)
 #define LockFree(x)			DeleteCriticalSection(x)
-
 
 char *GetFilePath(char *sFilePath);
 wchar_t *GetFilePath(wchar_t *sFilePath);

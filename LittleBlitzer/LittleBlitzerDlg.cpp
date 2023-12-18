@@ -9,6 +9,11 @@
 #include "TournSettings.h"
 #include "Board.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4244) // conversion from 'uint16_t' to 'uint8_t', possible loss of data
+#else
+#endif
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -16,7 +21,6 @@
 CString m_sResultsPath;
 
 // CLittleBlitzerDlg dialog
-
 
 CLittleBlitzerDlg::CLittleBlitzerDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CLittleBlitzerDlg::IDD, pParent)
@@ -55,7 +59,6 @@ CLittleBlitzerDlg::CLittleBlitzerDlg(CWnd* pParent /*=NULL*/)
 		m_Engines[i].m_sPath = 0;
 
 	srand(time(NULL));	// for CTournament::DumpIllegalMove
-
 
 	LockInit(&m_nLockGameNum, NULL);
 }
@@ -128,7 +131,6 @@ BEGIN_MESSAGE_MAP(CLittleBlitzerDlg, CDialog)
 	ON_BN_CLICKED(IDC_CHK_ILLEGAL, &CLittleBlitzerDlg::OnBnClickedChkIllegal)
 	ON_BN_CLICKED(IDC_CHK_FULLPGN, &CLittleBlitzerDlg::OnBnClickedChkFullPGN)
 END_MESSAGE_MAP()
-
 
 // CLittleBlitzerDlg message handlers
 
@@ -209,7 +211,6 @@ HCURSOR CLittleBlitzerDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
 void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 {
 	CString sPathName;
@@ -251,44 +252,43 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 		//m_nTotalNPSCount = new long long[m_nNumEngines];
 		//memset((long long *)m_nTotalNPSCount, 0, sizeof(long long)*m_nNumEngines);
 
-
 		char sParam[50];
 		long nValue = 0;
 		char sValue[100];
 
 		while (fscanf(f, "%s:", sParam) != EOF) {
 			fscanf(f, "%s", &sValue);
-			if        (!stricmp(sParam, "Type:")) {			// Type of tournament (0 = Gauntlet, 1 = Round Robin)
+			if        (!_stricmp(sParam, "Type:")) {			// Type of tournament (0 = Gauntlet, 1 = Round Robin)
 				m_Tournaments[0].m_nType = atol(sValue);
-			} else if (!stricmp(sParam, "TC:")) {			// Type of time control
+			} else if (!_stricmp(sParam, "TC:")) {			// Type of time control
 				m_Tournaments[0].m_nTC = atol(sValue);
-			} else if (!stricmp(sParam, "Base:")) {			// Base time in msec
+			} else if (!_stricmp(sParam, "Base:")) {			// Base time in msec
 				m_Tournaments[0].m_nBase = atol(sValue);
-			} else if (!stricmp(sParam, "Inc:")) {			// Increment time in msec
+			} else if (!_stricmp(sParam, "Inc:")) {			// Increment time in msec
 				m_Tournaments[0].m_nInc = atol(sValue);
-			} else if (!stricmp(sParam, "Rounds:")) {		// Rounds to play
+			} else if (!_stricmp(sParam, "Rounds:")) {		// Rounds to play
 				m_nNumGames = atol(sValue);
-			} else if (!stricmp(sParam, "Hash:")) {			// Hash size in MB
+			} else if (!_stricmp(sParam, "Hash:")) {			// Hash size in MB
 				m_Tournaments[0].m_nHash = atol(sValue);
-			} else if (!stricmp(sParam, "Ponder:")) {		// Pondering on/off (1/0)
+			} else if (!_stricmp(sParam, "Ponder:")) {		// Pondering on/off (1/0)
 				m_Tournaments[0].m_bPonder = atol(sValue);
-			} else if (!stricmp(sParam, "OwnBook:")) {		// OwnBook on/off (1/0)
+			} else if (!_stricmp(sParam, "OwnBook:")) {		// OwnBook on/off (1/0)
 				m_Tournaments[0].m_bOwnBook = atol(sValue);
-			} else if (!stricmp(sParam, "Variant:")) {		// Variant name (0=Standard, 1=FRC)
+			} else if (!_stricmp(sParam, "Variant:")) {		// Variant name (0=Standard, 1=FRC)
 				m_Tournaments[0].m_nVariant = atol(sValue);
-			} else if (!stricmp(sParam, "NumParallel:")) {	// Number of parallel tournaments to split the rounds into
+			} else if (!_stricmp(sParam, "NumParallel:")) {	// Number of parallel tournaments to split the rounds into
 				m_nNumTournaments = atol(sValue);
 				m_nNumTournaments = MIN(MAX_THREADS, m_nNumTournaments);
 				m_nNumTournaments = MAX(0, m_nNumTournaments);
-			} else if (!stricmp(sParam, "AdjudicateMateScore:")) {		// Adjudication score threshold for win/loss
+			} else if (!_stricmp(sParam, "AdjudicateMateScore:")) {		// Adjudication score threshold for win/loss
 				m_Tournaments[0].m_nAdjMateScore = atol(sValue);
 				if (m_Tournaments[0].m_nAdjMateScore < 0) m_Tournaments[0].m_nAdjMateScore *= -1; // only store positive score
-			} else if (!stricmp(sParam, "AdjudicateMateMoves:")) {		// Number of moves for score to be above/below AdjudicateMateScore
+			} else if (!_stricmp(sParam, "AdjudicateMateMoves:")) {		// Number of moves for score to be above/below AdjudicateMateScore
 				m_Tournaments[0].m_nAdjMateMoves = atol(sValue);
 				m_Tournaments[0].m_nAdjMateMoves = MIN(m_Tournaments[0].m_nAdjMateMoves, 1000);	// not too big or the dynamic mem allocation slows it down too much
-			} else if (!stricmp(sParam, "AdjudicateDrawMoves:")) {		// Number of moves before declaring draw
+			} else if (!_stricmp(sParam, "AdjudicateDrawMoves:")) {		// Number of moves before declaring draw
 				m_Tournaments[0].m_nAdjDrawMoves = atol(sValue);
-			} else if (!stricmp(sParam, "Position:")) {		// Starting position(s) to use
+			} else if (!_stricmp(sParam, "Position:")) {		// Starting position(s) to use
 				if (sValue[0] == 'F' && sValue[1] == 'E' && sValue[2] == 'N') {
 					// Load FEN string directly
 					m_nStartPositionType = 1;
@@ -350,7 +350,7 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 					m_Tournaments[0].m_nNumStartPositions = 1;
 					strcpy(m_Tournaments[0].m_sStartPositions[0], "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -"); // v2.71 change to w move!
 				}
-			} else if (!stricmp(sParam, "Randomize:")) {		// Randomize EPD/PGN positions
+			} else if (!_stricmp(sParam, "Randomize:")) {		// Randomize EPD/PGN positions
 				m_Tournaments[0].m_nRandomize = atol(sValue);
 			}
 		}
@@ -363,9 +363,6 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 	} else {
 		MessageBox(_T("Tournament file not found, will be created using defaults"),_T("Warning"));
 	}
-
-
-
 
 	CTournSettings dlg;
 	dlg.m_nRounds = m_nNumGames;
@@ -476,7 +473,6 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 	fprintf(f, "AdjudicateDrawMoves: %ld\n", m_Tournaments[0].m_nAdjDrawMoves);
 
 	fclose(f);
-
 
 	//UpdateTournamentBox();
 	UpdateNumTourneys();
@@ -732,7 +728,6 @@ void CLittleBlitzerDlg::OnBnClickedStart()
 	m_nTotalNPSCount = new long long[m_nNumEngines];
 	memset((long long *)m_nTotalNPSCount, 0, sizeof(long long)*m_nNumEngines);
 
-
 	m_nTimeTaken.Start();
 
 	// Start one thread per m_Tournament.m_nNumParallel
@@ -980,7 +975,6 @@ void CLittleBlitzerDlg::UpdateResults() {
 	CString s;
 	s.Format("Games Completed = %ld of %ld (Avg game length = %.3lf sec)\r\n", m_nNumGamesPlayed, m_nNumGames, m_dTotalGamesLen/(m_nNumGamesPlayed?m_nNumGamesPlayed:1)/1000.0);
 
-	
 	CString sVariant, sBook, sTC, sStart, sAdj;
 	sVariant.Format("%s",m_Tournaments[0].m_nVariant==VARIANT_960?"FRC/":"");
 	sBook.Format("%s",m_Tournaments[0].m_bOwnBook?"Book/":"");

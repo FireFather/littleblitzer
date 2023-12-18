@@ -1,4 +1,6 @@
 #pragma once
+#include <afxdialogex.h>
+
 #include "afxwin.h"
 #include "Board.h"
 

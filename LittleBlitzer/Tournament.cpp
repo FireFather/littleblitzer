@@ -1,11 +1,19 @@
 #include "StdAfx.h"
 #include "Tournament.h"
+
+#include <afxwin.h>
+
 #include "Common.h"
 #include "Timer.h"
 #include "Board.h"
 #include "Move.h"
 #include "MoveGen.h"
 #include "Engine.h"
+
+#ifdef _MSC_VER
+#pragma warning(disable : 4018) // signed/unsigned mismatch
+#else
+#endif
 
 CTournament::CTournament(void)
 {
@@ -162,7 +170,6 @@ void CTournament::Start() {
 	sGameMoves = (char *)malloc(sizeof(char)*nGameMovesAlloc);
 	sGameMoves[0] = 0; // v2.72 initialise in case no moves made
 	//sGameMoves.Preallocate(1024);
-	
 
 	m_nWastedTime += clock()-nStartTime;
 
@@ -225,7 +232,6 @@ void CTournament::Start() {
 				fTimeLeft[BLACK] = nBase[BLACK];
 			}
 		}
-
 
 		// Check move
 		if (!Move2Coord(&m, &b, sMove.GetBuffer(), m_nVariant)) {
@@ -409,7 +415,6 @@ void CTournament::DumpIllegalMove(TBoard *b, TMove m, char *sStartingPosition, C
 
 	fclose(fout);
 }
-
 
 void CTournament::Abort() {
 	m_bRunning = false;

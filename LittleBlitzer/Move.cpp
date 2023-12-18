@@ -771,7 +771,7 @@ bool Move2Coord(TMove *m, TBoard *b, char *sMove, int nVariant) {
 
 	int nSTM = b->nSideToMove;
 
-	if (!stricmp(sMove,"O-O")) {
+	if (!_stricmp(sMove,"O-O")) {
 		nMoveType = MOVE_TYPE_CASTLE;
 		if (nVariant == VARIANT_STD) {
 			nFromSquare = nSTM==WHITE ? E1 : E8;
@@ -781,7 +781,7 @@ bool Move2Coord(TMove *m, TBoard *b, char *sMove, int nVariant) {
 			nToSquare   = nSTM==WHITE ? G1 : G8;
 			//nToSquare = LSB(b->bbPieces[nSTM][PIECE_KING-1]|(nSTM==WHITE?g_bbMaskRank1:g_bbMaskRank8));
 		}
-	} else if (!stricmp(sMove,"O-O-O")) {
+	} else if (!_stricmp(sMove,"O-O-O")) {
 		nMoveType = MOVE_TYPE_CASTLE;
 		if (nVariant == VARIANT_STD) {
 			nFromSquare = nSTM==WHITE ? E1 : E8;

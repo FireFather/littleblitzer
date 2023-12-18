@@ -9,6 +9,7 @@
 #include "afxwin.h"
 #include "Timer.h"
 #include "Common.h"
+#include "resource.h"
 
 // CLittleBlitzerDlg dialog
 class CLittleBlitzerDlg : public CDialog
@@ -24,7 +25,6 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
-
 // Implementation
 protected:
 	HICON m_hIcon;
@@ -35,7 +35,6 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-
 
 	long m_nNumEngines;
 	CEngine m_Engines[100];			// Engines used

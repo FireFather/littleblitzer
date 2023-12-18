@@ -2,6 +2,8 @@
 
 #include "Common.h"
 #include "Timer.h"
+#include <afxstr.h>
+#include <afxcoll.h>
 
 #define IO_BUFFER		16384
 #define MAX_PARMS		100
@@ -13,7 +15,7 @@ public:
 	CEngine(void);
 	~CEngine(void);
 
-	tLock	m_nLockEngine;	// Protect against multiple threads doing the same thing
+	CRITICAL_SECTION	m_nLockEngine;	// Protect against multiple threads doing the same thing
 
 	//
 	// Engine details

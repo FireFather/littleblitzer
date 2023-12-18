@@ -1,5 +1,8 @@
 #include "StdAfx.h"
 #include "Engine.h"
+
+#include <afxwin.h>
+
 #include "Common.h"
 #include "Timer.h"
 #include "Tournament.h"
@@ -33,7 +36,6 @@ CEngine::CEngine(void)
 
 	LockInit(&m_nLockEngine, NULL);
 }
-
 
 CEngine::~CEngine(void)
 {
@@ -167,7 +169,6 @@ bool CEngine::Init() {
 		GetLine(&sLine);
 		//TRACE("> %s\n",sLine);
 	} while (sLine.Find("readyok") == -1);
-
 
 	return true;
 	

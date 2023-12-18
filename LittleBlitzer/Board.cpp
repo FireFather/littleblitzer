@@ -10,6 +10,11 @@
 //#include "Eval.h"
 //#include "fast_memcpy.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4244) // conversion from 'uint16_t' to 'uint8_t', possible loss of data
+#else
+#endif
+
 BitBoard bit[64];					// Single bit BitBoards
 BitBoard g_bbPawnAttacks[2][64];	// [COLOR][SQUARE] Stores the squares attacked by a pawn at the indexed square.
 BitBoard g_bbWhitePawnAttacks[64];	// Stores the squares attacked by a white pawn at the indexed square.
@@ -366,7 +371,6 @@ void InitialiseArrays() {
 		}
 	}
 
-
 	// Fill the random number tables for hashing
 	for (i=0;i<64;i++) {
 		// Setup empty squares with zero
@@ -399,9 +403,7 @@ void InitialiseArrays() {
 	for (i=1;i<100;i++)
 		g_nHash50Move[i] = GetRandomNum();
 
-
 }
-
 
 void ZeroBoard(TBoard *b) {
 // Erases all contents of the board.
@@ -443,7 +445,7 @@ void CreateStartingPosition(TBoard *b, int nVariant) {
 	} else if (nVariant == VARIANT_960) {
 		// Bodlaender's method
 		srand(time(NULL));
-		int r,c;
+		int r;
 		r = rand() % 4;
 		b->nPieces[A1-2*r] = PIECE_BISHOP;
 		r = rand() % 4;
@@ -478,8 +480,6 @@ void CreateStartingPosition(TBoard *b, int nVariant) {
 	}
 	
 	for (int s=A1;s>=H1;s--) ASSERT(b->nPieces[s]);
-
-
 
 	//b->nWhiteMaterial = 8*SCORE_PAWN + 2*SCORE_ROOK + 2*SCORE_KNIGHT + 2*SCORE_BISHOP + SCORE_QUEEN;
 	//b->nBlackMaterial = 8*SCORE_PAWN + 2*SCORE_ROOK + 2*SCORE_KNIGHT + 2*SCORE_BISHOP + SCORE_QUEEN;
@@ -657,7 +657,6 @@ void PrintBoard(TBoard *b, FILE *f) {
 			fprintf(f,"\n");
 		}
 
-		
 		fprintf(f,"   ---------------\n  ");
 		for (x=0;x<8;x++) {
 			fprintf(f," %c",'a'+x);
@@ -1075,7 +1074,6 @@ void ValidateBoard(TBoard *b) {
 	}
 }
 
-
 void SetBitBoards(TBoard *b) {
 // Uses nPieces[] to set the bitboards in b.
 	int i;
@@ -1395,7 +1393,6 @@ void LoadFEN(TBoard *b, const char a_sFEN[]) {
 				break;
 			}
 		}
-
 
 		// Get position of next line break
 		strcpy(tmpStr, str+1);

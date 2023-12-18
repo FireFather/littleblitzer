@@ -1,6 +1,11 @@
 #include "StdAfx.h"
 #include "Common.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4146) // unary minus operator applied to unsigned type, result still unsigned
+#else
+#endif
+
 FILE *fLog = NULL;
 char sLogPath[1024];
 

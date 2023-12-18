@@ -8,11 +8,10 @@
 	#error "include 'stdafx.h' before including this file for PCH"
 #endif
 
+#include "LittleBlitzerDlg.h"
 #include "resource.h"		// main symbols
 
-
 #define VERSION	"2.75"
-
 
 // CLittleBlitzerApp:
 // See LittleBlitzer.cpp for the implementation of this class
