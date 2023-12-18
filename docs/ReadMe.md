@@ -24,5 +24,3 @@ Contact me at nathanthom@gmail.com
 [commits-badge]:https://img.shields.io/github/commits-since/someidiot/littleblitzer/latest?style=for-the-badge
 [commits-link]:https://github.com/someidiot/littleblitzer/commits/main
 [downloads-badge]:https://img.shields.io/github/downloads/someidiot/littleblitzer/total?color=success&style=for-the-badge
-
-https://github.com/someidiot/littleblitzer
