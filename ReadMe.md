@@ -8,7 +8,6 @@ Contact me at nathanthom@gmail.com
 
 
 ## Instructions
-------------
 - 1. Create a Engines.lbe file with a list of UCI engines to use. Do not put spaces either side of the =.
    Blank lines are fine, UCI parameters should appear after the relevant Engine line, so in the following
    example "Time Buffer" is only set for t20090922.exe and "Hash=128" is only set for Hamsters.exe. You can 
@@ -98,7 +97,6 @@ Contact me at nathanthom@gmail.com
 
 
 ## Notes
------
 - Enabling FRC via Variant=1 will automatically set each engine's UCI_Chess960 parameter to true.
 - Parameters specified within the engines file will override any tournament settings, e.g. Hash size.
 - For EPD opening suites, each position will get played 2*(numengines-1) times, so best to have number
@@ -107,10 +105,10 @@ Contact me at nathanthom@gmail.com
 
 
 ## Result Columns
---------------
 - After the engine names, there will be 5 groups of columns with data.
 
 For example:
+
  1.  LittleThought v1.06.72   	11989.0/23644	11023-10689-1932  	(L: m=5083 t=198 i=0 a=5408)	(D: r=1018 i=511 f=225 s=87 a=91)	(tpm=112.4 d=10.2 nps=827951)
 
 - 1. Score (points/games played)
@@ -127,7 +125,6 @@ For example:
 
 
 ## Version History
----------------
 - v2.75 24/10/2013
 - Increased max threads from 16 to 128.
 
