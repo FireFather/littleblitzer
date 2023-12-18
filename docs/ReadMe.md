@@ -18,7 +18,7 @@ Download LittleBlitzer from http://www.kimiensoftware.com
 Contact me at nathanthom@gmail.com
 
 [license-badge]:https://img.shields.io/github/license/FireFather/littleblitzer?style=for-the-badge&label=license&color=success
-[license-link]:https://github.com/FireFather/littleblitzer/blob/main/LICENSE
+[license-link]:https://github.com/FireFather/littleblitzer/blob/main/docs/LICENSE
 [release-badge]:https://img.shields.io/github/v/release/FireFather/littleblitzer?style=for-the-badge&label=official%20release
 [release-link]:https://github.com/FireFather/littleblitzer/releases/latest
 [commits-badge]:https://img.shields.io/github/commits-since/FireFather/littleblitzer/latest?style=for-the-badge
