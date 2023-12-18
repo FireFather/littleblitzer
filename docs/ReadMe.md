@@ -8,9 +8,10 @@
  
 </div>
 
-LittleBlitzer is a Windows tournament manager program for UCI based chess engines. It was created to enable
-playing thousands of very fast games using multiple threads for chess engine testing purposes. It creates a
-PGN file designed to be used by Bayeselo or Elostat to give a final rating for each engine.
+LittleBlitzer is a Windows tournament manager and testing application for UCI based chess engines. It was created to enable
+playing thousands of very fast games using multiple threads for chess engine testing purposes. 
+
+Visual Studio 2022 project files included.
 
 ![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
 
@@ -18,7 +19,7 @@ Download LittleBlitzer from http://www.kimiensoftware.com
 Contact me at nathanthom@gmail.com
 
 [license-badge]:https://img.shields.io/github/license/FireFather/littleblitzer?style=for-the-badge&label=license&color=success
-[license-link]:https://github.com/FireFather/littleblitzer/blob/main/docs/LICENSE
+[license-link]:https://github.com/FireFather/littleblitzer/blob/master/docs/LICENSE
 [release-badge]:https://img.shields.io/github/v/release/FireFather/littleblitzer?style=for-the-badge&label=official%20release
 [release-link]:https://github.com/FireFather/littleblitzer/releases/latest
 [commits-badge]:https://img.shields.io/github/commits-since/FireFather/littleblitzer/latest?style=for-the-badge
