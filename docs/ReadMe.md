@@ -16,6 +16,7 @@ Visual Studio 2022 project files included.
 ![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
 
 Download LittleBlitzer from http://www.kimiensoftware.com
+
 Contact me at nathanthom@gmail.com
 
 [license-badge]:https://img.shields.io/github/license/FireFather/littleblitzer?style=for-the-badge&label=license&color=success
