@@ -1,19 +1,18 @@
 #pragma once
 
-#include <iostream>
 #include <windows.h>
 
 class CTimer
 {
 public:
-	CTimer(void);
-	~CTimer(void);
+   CTimer();
+   ~CTimer();
 
-	void Start();
-	void Stop();
-	double GetMS();		// Get ms elapsed time
+   void Start();
+   void Stop();
+   [[nodiscard]] double GetMS() const;
 
 private:
-	LARGE_INTEGER m_nFreq;		// ticks per second
-    LARGE_INTEGER m_nT1, m_nT2;	// ticks
+   LARGE_INTEGER m_nFreq;
+   LARGE_INTEGER m_nT1, m_nT2;
 };

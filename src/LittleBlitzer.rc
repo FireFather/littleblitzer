@@ -27,35 +27,34 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog
 //
 
-IDD_LITTLEBLITZER_DIALOG DIALOGEX 0, 0, 627, 364
-STYLE DS_SETFONT | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+IDD_LITTLEBLITZER_DIALOG DIALOGEX 0, 0, 710, 505
+STYLE DS_SETFONT | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "LittleBlitzer"
 FONT 8, "Courier New", 400, 0, 0x0
 BEGIN
-    PUSHBUTTON      "GO!",IDC_START,89,71,66,39
-    EDITTEXT        IDC_STATUS,7,120,613,237,ES_MULTILINE | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL
-    PUSHBUTTON      "Load Tournament Settings",IDC_TOURNAMENT,422,22,149,14,BS_MULTILINE
-    EDITTEXT        IDC_ENGINE_FILE,81,7,317,13,ES_AUTOHSCROLL
-    LTEXT           "Engines file:",IDC_STATIC,7,8,59,12
-    PUSHBUTTON      "Load Engines",IDC_LOAD_ENGINES,422,7,149,14
-    PUSHBUTTON      "Pause\n(zero threads)",IDC_PAUSE,179,75,66,31,BS_MULTILINE
-    PUSHBUTTON      "...",IDC_OPEN_ENGINES,400,7,14,14,BS_BITMAP
-    EDITTEXT        IDC_TOURN_FILE,81,22,317,13,ES_AUTOHSCROLL
-    LTEXT           "Tournament file:",IDC_STATIC,7,23,71,12
-    PUSHBUTTON      "...",IDC_OPEN_TOURN,400,22,14,14,BS_BITMAP
-    EDITTEXT        IDC_SAVE_PGN,81,38,317,13,ES_AUTOHSCROLL
-    LTEXT           "Save PGN:",IDC_STATIC,7,39,49,12
-    PUSHBUTTON      "Copy",IDC_COPYTEXT,587,105,32,15
-    LTEXT           "0",IDC_NUMTHREADS,283,81,58,23
-    PUSHBUTTON      "+",IDC_INC,253,73,26,16
-    PUSHBUTTON      "-",IDC_DEC,253,92,26,16
-    CONTROL         "Log First Engine (LittleBlitzer.log)",IDC_CHK_LOG,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,387,66,175,12
-    GROUPBOX        "Number of threads",IDC_STATIC,169,63,176,54
-    CONTROL         "Dump illegal moves",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,387,82,162,11
-    CONTROL         "Write full game in PGN result file",IDC_CHK_FULLPGN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,387,96,166,14
+    PUSHBUTTON      "GO",IDC_START,87,73,52,32
+    EDITTEXT        IDC_STATUS,7,122,697,376,ES_MULTILINE
+    PUSHBUTTON      "Load Settings",IDC_TOURNAMENT,422,25,149,14,BS_MULTILINE
+    EDITTEXT        IDC_ENGINE_FILE,81,8,317,13,ES_AUTOHSCROLL
+    LTEXT           "Engines file:",IDC_STATIC,8,11,69,8
+    PUSHBUTTON      "Load Engines",IDC_LOAD_ENGINES,422,8,149,14
+    PUSHBUTTON      "STOP",IDC_PAUSE,146,73,52,32,BS_MULTILINE
+    PUSHBUTTON      "...",IDC_OPEN_ENGINES,400,8,14,14,BS_BITMAP
+    EDITTEXT        IDC_TOURN_FILE,81,25,317,13,ES_AUTOHSCROLL
+    LTEXT           "Settings file:",IDC_STATIC,8,27,69,8
+    PUSHBUTTON      "...",IDC_OPEN_TOURN,400,25,14,14,BS_BITMAP
+    EDITTEXT        IDC_SAVE_PGN,81,42,317,13,ES_AUTOHSCROLL
+    LTEXT           "Save PGN:",IDC_STATIC,8,43,69,8
+    PUSHBUTTON      "Copy",IDC_COPYTEXT,668,96,32,15
+    CTEXT           "",IDC_NUMTHREADS,303,86,52,17
+    PUSHBUTTON      "+",IDC_INC,363,73,26,16
+    PUSHBUTTON      "-",IDC_DEC,363,89,26,16
+    CONTROL         "Log 1st engine to LittleBlitzer.log",IDC_CHK_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,65,166,14
+    GROUPBOX        "",IDC_STATIC,80,60,317,54
+    CONTROL         "Write illegal moves to file",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,82,166,14
+    CONTROL         "Write game moves to PGN file",IDC_CHK_FULLPGN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,98,166,14
+    CTEXT           "Threads",IDC_STATIC,303,77,52,8
 END
 
 
@@ -109,12 +108,23 @@ BEGIN
     IDD_LITTLEBLITZER_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 620
+        RIGHTMARGIN, 703
         TOPMARGIN, 7
-        BOTTOMMARGIN, 357
+        BOTTOMMARGIN, 498
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_LITTLEBLITZER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
@@ -164,7 +174,7 @@ BEGIN
     LTEXT           "Increment:",IDC_TC_LBL_2,180,127,41,12
     LTEXT           "Hash:",IDC_STATIC,145,54,23,12
     GROUPBOX        "Variant",IDC_STATIC,7,42,128,30
-    LTEXT           "Num Parallel Tournaments (1-16):",IDC_STATIC,145,35,113,12
+    LTEXT           "Num Parallel Games (1-128):",IDC_STATIC,145,35,113,12
     GROUPBOX        "Adjudications",IDC_STATIC,7,78,126,61
     LTEXT           "Mate Score (cp):",IDC_STATIC,17,90,54,12
     LTEXT           "Mate Moves:",IDC_STATIC,17,106,43,12
@@ -247,6 +257,7 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\LittleBlitzer.ico"
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -1,34 +1,21 @@
-
-// LittleBlitzer.h : main header file for the PROJECT_NAME application
-//
-
 #pragma once
 
 #ifndef __AFXWIN_H__
-	#error "include 'stdafx.h' before including this file for PCH"
+#error "include 'stdafx.h' before including this file for PCH"
 #endif
 
 #include "LittleBlitzerDlg.h"
-#include "resource.h"		// main symbols
 
-#define VERSION	"2.75"
+#define VERSION	"2.76 x64"
 
-// CLittleBlitzerApp:
-// See LittleBlitzer.cpp for the implementation of this class
-//
-
-class CLittleBlitzerApp : public CWinAppEx
+class CLittleBlitzerApp final : public CWinAppEx
 {
 public:
-	CLittleBlitzerApp();
+   CLittleBlitzerApp();
 
-// Overrides
-	public:
-	virtual BOOL InitInstance();
+   BOOL InitInstance() override;
 
-// Implementation
-
-	DECLARE_MESSAGE_MAP()
+   DECLARE_MESSAGE_MAP()
 };
 
 extern CLittleBlitzerApp theApp;

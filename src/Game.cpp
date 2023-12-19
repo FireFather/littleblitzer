@@ -1,13 +1,12 @@
 #include "StdAfx.h"
 #include "Game.h"
 
-CGame::CGame(void)
+CGame::CGame()
 {
-	m_nBase = 1000;
-	m_nInc = 1000;
-	m_bPonder = 0;
+   m_nBase = 1000;
+   m_nInc = 1000;
+   m_bPonder = false;
 }
 
-CGame::~CGame(void)
-{
-}
+CGame::~CGame()
+= default;

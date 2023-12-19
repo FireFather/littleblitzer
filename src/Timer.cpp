@@ -1,35 +1,33 @@
 #include "StdAfx.h"
 #include "Timer.h"
 
-CTimer::CTimer(void)
+CTimer::CTimer()
 {
-	// get ticks per second
-    QueryPerformanceFrequency(&m_nFreq);
-	m_nT1.QuadPart = 0;
-	m_nT2.QuadPart = 0;
+   QueryPerformanceFrequency(&m_nFreq);
+   m_nT1.QuadPart = 0;
+   m_nT2.QuadPart = 0;
 }
 
-CTimer::~CTimer(void)
+CTimer::~CTimer()
+= default;
+
+void CTimer::Start()
 {
+   QueryPerformanceCounter(&m_nT1);
 }
 
-void CTimer::Start() {
-	// start timer
-    QueryPerformanceCounter(&m_nT1);
+void CTimer::Stop()
+{
+   QueryPerformanceCounter(&m_nT2);
 }
 
-void CTimer::Stop() {
-	// stop timer
-    QueryPerformanceCounter(&m_nT2);
-}
-
-double CTimer::GetMS() {
-    // compute and print the elapsed time in millisec
-	if (m_nT2.QuadPart == 0) {
-		LARGE_INTEGER i;
-		QueryPerformanceCounter(&i);
-		return (i.QuadPart - m_nT1.QuadPart) * 1000.0 / m_nFreq.QuadPart;
-	} else {
-		return (m_nT2.QuadPart - m_nT1.QuadPart) * 1000.0 / m_nFreq.QuadPart;
-	}
+double CTimer::GetMS() const
+{
+   if (m_nT2.QuadPart == 0)
+   {
+      LARGE_INTEGER i;
+      QueryPerformanceCounter(&i);
+      return static_cast<double>(i.QuadPart - m_nT1.QuadPart) * 1000.0 / static_cast<double>(m_nFreq.QuadPart);
+   }
+   return static_cast<double>(m_nT2.QuadPart - m_nT1.QuadPart) * 1000.0 / static_cast<double>(m_nFreq.QuadPart);
 }
