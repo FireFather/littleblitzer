@@ -34,7 +34,7 @@ CAPTION "LittleBlitzer"
 FONT 8, "Courier New", 400, 0, 0x0
 BEGIN
     PUSHBUTTON      "GO",IDC_START,87,73,52,32
-    EDITTEXT        IDC_STATUS,7,122,697,376,ES_MULTILINE
+    EDITTEXT        IDC_STATUS,7,122,697,376,ES_MULTILINE | WS_VSCROLL | WS_HSCROLL
     PUSHBUTTON      "Load Settings",IDC_TOURNAMENT,422,25,149,14,BS_MULTILINE
     EDITTEXT        IDC_ENGINE_FILE,81,8,317,13,ES_AUTOHSCROLL
     LTEXT           "Engines file:",IDC_STATIC,8,11,69,8
@@ -46,7 +46,7 @@ BEGIN
     PUSHBUTTON      "...",IDC_OPEN_TOURN,400,25,14,14,BS_BITMAP
     EDITTEXT        IDC_SAVE_PGN,81,42,317,13,ES_AUTOHSCROLL
     LTEXT           "Save PGN:",IDC_STATIC,8,43,69,8
-    PUSHBUTTON      "Copy",IDC_COPYTEXT,668,96,32,15
+    PUSHBUTTON      "Copy",IDC_COPYTEXT,660,95,32,15
     CTEXT           "",IDC_NUMTHREADS,303,86,52,17
     PUSHBUTTON      "+",IDC_INC,363,73,26,16
     PUSHBUTTON      "-",IDC_DEC,363,89,26,16
@@ -123,7 +123,29 @@ END
 
 IDD_LITTLEBLITZER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
-    0
+    0,
+    0, 0, 0, 0,
+    0, 0, 100, 100,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
 END
 
 #endif    // English (United States) resources
