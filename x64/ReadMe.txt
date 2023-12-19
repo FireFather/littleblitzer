@@ -118,6 +118,12 @@ For example:
 
 
 ## Version History
+- v2.76 19/12/2023 (firefather)
+  Project now 64 bit
+  Source code analysis, optimization and refactoring via Clang, ReSharper C++, and Visual Studio Code Analysis (comments removed)
+  Application window size increased and made horizonally and vertically resizable
+  Several small changes/tweaks to the application buttons and controls
+  
 - v2.75 24/10/2013
   Increased max threads from 16 to 128.
 
