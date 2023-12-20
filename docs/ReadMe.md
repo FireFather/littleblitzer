@@ -20,7 +20,7 @@ It can play ultra fast games using multiple threads for concurrent (up to 128 th
 ### LittleBlitzer 2.76 is now available
 
 - 64 bit
-- Application window size increased
+- Application window size increase
 - Window is now horizontally and vertically resizable
 - Includes Visual Studio 2022 project files
 
