@@ -25,8 +25,8 @@ While running, LittleBlitzer outputs a ton of useful info:
   
 ---------
 ### LittleBlitzer 2.76 is now available
-
 - 64 bit
+- concurrency up to 128 threads
 - Application window size increase
 - Window is now horizontally and vertically resizable
 - Includes Visual Studio 2022 project files
