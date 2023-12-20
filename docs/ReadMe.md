@@ -10,12 +10,13 @@
  
 </div>
 
-## LittleBlitzer is a Windows tournament manager and testing application for UCI based chess engines. It was created to enable
+### LittleBlitzer is a Windows tournament manager and testing application for UCI based chess engines. It was created to enable
 playing thousands of very fast games using multiple threads for concurrent chess engine testing. 
+
 
 ![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
 
-## LittleBlitzer 2.76 is now available
+### LittleBlitzer 2.76 is now available
 
 - 64 bit
 - Application window size increased
