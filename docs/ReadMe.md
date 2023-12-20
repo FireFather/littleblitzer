@@ -22,14 +22,23 @@ While running, LittleBlitzer outputs a ton of useful info:
 - loss reasons: (m) mate, (t) timeout, (i) illegal move (a) adjudication
 - draw reasons: (r) repetition, (i) insufficient material, (f) 50 moves (s) stalemate (a) adjudication
 - averages    : (tpm) time per move (d) depth (nps) nodes per second
-
+  
+---------
 ### LittleBlitzer 2.76 is now available
 
 - 64 bit
 - Application window size increase
 - Window is now horizontally and vertically resizable
 - Includes Visual Studio 2022 project files
+  
+---------
+According to Stefan Pohl who has used it for many years there are still a few bugs
 
+see his LBG_hints.rtf, available at Stefan Pohl Computer Chess: https://www.sp-cc.de/
+
+In Downloads: find the 'Download a short manual and some other helpful files for using the LittleBlitzerGUI here' link
+
+-----------
 LittleBlitzer is from http://www.kimiensoftware.com
 
 Contact the author at nathanthom@gmail.com
