@@ -17,11 +17,11 @@ It can play ultra fast games using multiple threads for concurrent (up to 128 th
 
 ![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
 
-While running, LittleBlitzer outputs lots of extra useful info:
+While running, LittleBlitzer outputs a ton of useful info:
 
-- loss reason: (m) mate, (t) timeout, (i) illegal move (a) adjudication
-- draw reason: (r) repetition, (i) insufficient material, (f) 50 moves (s) stalemate (a) adjudication
-- average    : (tpm) time per move (d) depth (nps) nodes per second
+- loss reasons: (m) mate, (t) timeout, (i) illegal move (a) adjudication
+- draw reasons: (r) repetition, (i) insufficient material, (f) 50 moves (s) stalemate (a) adjudication
+- averages    : (tpm) time per move (d) depth (nps) nodes per second
 
 ### LittleBlitzer 2.76 is now available
 
