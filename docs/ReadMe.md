@@ -32,7 +32,7 @@ While running, LittleBlitzer outputs a ton of useful info:
 - Includes Visual Studio 2022 project files
   
 ---------
-According to Stefan Pohl who has used it for many years there are still a few bugs
+According to Stefan Pohl who has used it for many years there are still a few issues
 
 see his LBG_hints.rtf, available at Stefan Pohl Computer Chess: https://www.sp-cc.de/
 
