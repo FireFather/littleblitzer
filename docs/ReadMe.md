@@ -24,7 +24,12 @@ While running, LittleBlitzer outputs a ton of useful info:
 - averages    : (tpm) time per move (d) depth (nps) nodes per second
   
 ---------
-### LittleBlitzer 2.76 is now available
+### LittleBlitzer 2.77 is now available
+03/01/2024
+- Live win% for each engine calculated and displayed
+
+### LittleBlitzer 2.76 is available
+19/12/2023
 - 64 bit
 - concurrency up to 128 threads
 - Application window size increase
