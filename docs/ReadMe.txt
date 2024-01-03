@@ -102,22 +102,32 @@ Starting Positions:
 
 For example:
 
- 1.  LittleThought v1.06.72 11989.0/23644 11023-10689-1932 (L: m=5083 t=198 i=0 a=5408) (D: r=1018 i=511 f=225 s=87 a=91) (tpm=112.4 d=10.2 nps=827951)
+ 1.  LittleThought v2.77 11989.0/23644 11023-10689-1932 50.71% (L: m=5083 t=198 i=0 a=5408) (D: r=1018 i=511 f=225 s=87 a=91) (tpm=112.4 d=10.2 nps=827951)
 
 1. Score (points/games played)
      e.g. score of 11989 over 23644 games
 2. Score Breakdown (wins-losses-draws)
      e.g. 11023 wins, 10689 losses, 1932 draws
-3. Loss reasons (m = mated, t = timed out, i = illegal moves, a = adjudication)
+3. Win% (wins + draws / 2) / number of games played
+4. Loss reasons (m = mated, t = timed out, i = illegal moves, a = adjudication)
      e.g. 5083 mated, 198 timeouts, 0 illegal moves, 5408 adjudicated losses
-4. Draw reasons (r = repetition, i = insufficient material, f = 50 moves, s = stalemate, a = adjudication)
+5. Draw reasons (r = repetition, i = insufficient material, f = 50 moves, s = stalemate, a = adjudication)
      e.g. 1018 repetitions, 511 insufficient material, 225 50-moves, 87 stalemates, 91 adjudicated draws
-5. Engine stats (tpm = avg time per move, d = avg depth, nps = avg nps)
+6. Engine stats (tpm = avg time per move, d = avg depth, nps = avg nps)
      e.g. 112.4 ms/move, 10.2 ply, 827951 nps
 
 
-
 ## Version History
+- v2.77 3/1/2024
+  Live win% for each engine calculated and displayed
+
+- v2.76 19/12/2023
+  64 bit
+  Concurrency up to 128 threads
+  Application window size increase
+  Window is now horizontally and vertically resizable
+  Includes Visual Studio 2022 project files
+  
 - v2.75 24/10/2013
   Increased max threads from 16 to 128.
 
