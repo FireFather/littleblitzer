@@ -1045,11 +1045,14 @@ void CLittleBlitzerDlg::UpdateResults()
          const int nWins = m_nWins ? m_nWins[i] : 0;
          const int nDraws = m_nDraws ? m_nDraws[i] : 0;
          const int nLosses = m_nLosses ? m_nLosses[i] : 0;
-         s.AppendFormat(
+         int nGames = m_nWins[i] + m_nDraws[i] + m_nLosses[i];
+         if (nGames == 0)
+             nGames = 1;
+           s.AppendFormat(
             _T(
-               "%0.1f/%ld\t%d-%d-%d\t(loss: m=%d t=%d i=%d a=%d)\t(draw: r=%d i=%d f=%d s=%d a=%d)\t(avg: tpm=%.1lf d=%.2lf nps=%lld)")
+               "%0.1f/%ld\t%d-%d-%d (%.2f%%)\t(loss: m=%d t=%d i=%d a=%d)\t(draw: r=%d i=%d f=%d s=%d a=%d)\t(avg: tpm=%.1lf d=%.2lf nps=%lld)")
             , nWins + nDraws / 2.0, m_nGames[i]
-            , nWins, nLosses, nDraws
+            , nWins, nLosses, nDraws, (nWins + nDraws / 2.0) / nGames * 100
             , nLosses - m_nResults[WHITE_TIMEOUT][i] - m_nResults[BLACK_TIMEOUT][i] - m_nResults[WHITE_ILLEGAL][i] -
             m_nResults[BLACK_ILLEGAL][i] - m_nResults[ADJ_WHITE_MATES][i] - m_nResults[ADJ_BLACK_MATES][i],
             m_nResults[WHITE_TIMEOUT][i] + m_nResults[BLACK_TIMEOUT][i],
