@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LittleBlitzer.h"
 #include "TournSettings.h"
+#include "Common.h"
 #include "afxdialogex.h"
 
 IMPLEMENT_DYNAMIC(CTournSettings, CDialogEx)
@@ -152,6 +153,15 @@ void CTournSettings::OnBnClickedOk()
    m_nOwnBook = m_wndOwnBook.GetCheck();
    m_wndPosition.GetWindowText(m_sStartingPosition, MAX_FEN_LEN);
    m_nRandomize = m_wndRandomize.GetCheck();
+
+   m_nRounds = MAX(1, m_nRounds);
+   m_nParallel = MIN(MAX_THREADS, MAX(1, m_nParallel));
+   m_nHash = MAX(1, m_nHash);
+   m_nAdjMateScore = MAX(1, labs(m_nAdjMateScore));
+   m_nAdjMateMoves = MIN(1000, MAX(1, m_nAdjMateMoves));
+   m_nAdjDrawMoves = MAX(1, m_nAdjDrawMoves);
+   m_nTimeBase = MAX(1, m_nTimeBase);
+   m_nTimeInc = MAX(0, m_nTimeInc);
 
    CDialogEx::OnOK();
 }

@@ -1421,7 +1421,18 @@ void GameMoves2FEN(char* sMoves, char* sFEN)
             1] & mask;
 
          if (prom > 0) type = MOVE_TYPE_PROM;
-         if (capture) capture = b->nPieces[to] & SQUARE_PIECE_MASK;
+         if (capture)
+         {
+            if (piece == PIECE_PAWN && to == b->nEPSquare && b->nPieces[to] == SQUARE_EMPTY)
+            {
+               type = MOVE_TYPE_EP;
+               capture = PIECE_PAWN;
+            }
+            else
+            {
+               capture = b->nPieces[to] & SQUARE_PIECE_MASK;
+            }
+         }
 
          if (CountBits(frpc) > 1)
          {

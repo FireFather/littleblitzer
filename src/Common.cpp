@@ -44,16 +44,19 @@ void ResetLog()
    char sFile[1024];
    GetModuleFileNameA(nullptr, sFile, 1024);
    char* sPath = GetFilePath(sFile);
-   sprintf(sLogPath, "%s\\LittleBlitzer.log", sPath);
-   delete sPath;
+   if (!sPath) return;
+   sprintf_s(sLogPath, "%s\\LittleBlitzer.log", sPath);
+   delete[] sPath;
 
    fLog = fopen(sLogPath, "wt");
-   fclose(fLog);
+   if (fLog) fclose(fLog);
 }
 
 void Log(const char format[], ...)
 {
    if (!g_bLogging) return;
+   static std::mutex logMutex;
+   const std::lock_guard<std::mutex> lock(logMutex);
    if (!fLog)
    {
       ResetLog();
@@ -61,8 +64,10 @@ void Log(const char format[], ...)
    char buf[16 * 1024];
    va_list arg_list;
    va_start(arg_list, format);
-   vsprintf(buf, format, arg_list);
+   _vsnprintf_s(buf, sizeof(buf), _TRUNCATE, format, arg_list);
    va_end(arg_list);
+
+   if (buf[0] == 0) return;
 
    fLog = fopen(sLogPath, "at");
    if (!fLog) return;
@@ -125,8 +130,10 @@ int RemoveBit(BitBoard& bb)
 
 BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, HANDLE* hProcess)
 {
+   if (!sPath || !*sPath || !hProcess) return FALSE;
+
    char szCmdline[1024];
-   strcpy(szCmdline, sPath);
+   if (sprintf_s(szCmdline, "\"%s\"", sPath) < 0) return FALSE;
    PROCESS_INFORMATION piProcInfo;
    STARTUPINFO siStartInfo;
 
@@ -139,20 +146,24 @@ BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, 
    siStartInfo.hStdInput = hIn;
    siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-   const char* p = strrchr(szCmdline, '\\');
-   ASSERT(p);
    char sCWD[1024];
-   ASSERT(p - szCmdline > 0);
-   strncpy(sCWD, szCmdline, p - szCmdline);
-   sCWD[p - szCmdline] = 0;
+   const char* backslash = strrchr(sPath, '\\');
+   const char* slash = strrchr(sPath, '/');
+   const char* separator = backslash;
+   if (slash && (!separator || slash > separator)) separator = slash;
+   if (separator)
+   {
+      const size_t cwdLength = static_cast<size_t>(separator - sPath);
+      if (cwdLength == 0 || cwdLength >= sizeof(sCWD)) return FALSE;
+      strncpy_s(sCWD, sPath, cwdLength);
+      sCWD[cwdLength] = 0;
+   }
+   else if (!GetCurrentDirectoryA(sizeof(sCWD), sCWD))
+   {
+      return FALSE;
+   }
 
-   wchar_t szCmdline_W[1024];
-   wchar_t sCWD_W[1024];
-   size_t dumb;
-   mbstowcs_s(&dumb, szCmdline_W, strlen(szCmdline) + 1, szCmdline, 1024);
-   mbstowcs_s(&dumb, sCWD_W, strlen(sCWD) + 1, sCWD, 1024);
-
-   const BOOL bFuncRetn = CreateProcess(nullptr,
+   const BOOL bFuncRetn = CreateProcessA(nullptr,
       szCmdline,
       nullptr,
       nullptr,
@@ -180,8 +191,10 @@ BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, 
 
 wchar_t* ConvertCharToWCharBecauseMSDontProvideOne(const char* str)
 {
-   wchar_t w[1024];
-   size_t dumb;
-   mbstowcs_s(&dumb, w, strlen(str) + 1, str, 1024);
-   return w;
+   if (!str) return nullptr;
+   size_t length = 0;
+   mbstowcs_s(&length, nullptr, 0, str, 0);
+   wchar_t* result = new wchar_t[length];
+   mbstowcs_s(&length, result, length, str, _TRUNCATE);
+   return result;
 }

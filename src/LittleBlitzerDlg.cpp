@@ -18,6 +18,30 @@
 
 CString m_sResultsPath;
 
+namespace
+{
+constexpr int MAX_ENGINES = 100;
+constexpr char STANDARD_START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
+
+void FreeStartPositions(CTournament& tournament)
+{
+   for (int i = 0; i < tournament.m_nNumStartPositions; ++i)
+      delete[] tournament.m_sStartPositions[i];
+   delete[] tournament.m_sStartPositions;
+   tournament.m_sStartPositions = nullptr;
+   tournament.m_nNumStartPositions = 0;
+}
+
+void SetDefaultStartPosition(CTournament& tournament)
+{
+   FreeStartPositions(tournament);
+   tournament.m_sStartPositions = new char* [1];
+   tournament.m_sStartPositions[0] = new char[sizeof(STANDARD_START_FEN)];
+   strcpy_s(tournament.m_sStartPositions[0], sizeof(STANDARD_START_FEN), STANDARD_START_FEN);
+   tournament.m_nNumStartPositions = 1;
+}
+}
+
 CLittleBlitzerDlg::CLittleBlitzerDlg(CWnd* pParent)
    : CDialog(IDD, pParent), m_sStartPositionFile{}, m_bPaused(false)
 {
@@ -53,34 +77,29 @@ CLittleBlitzerDlg::CLittleBlitzerDlg(CWnd* pParent)
    for (auto& m_Engine : m_Engines)
       m_Engine.m_sPath = nullptr;
 
-   srand(time(nullptr));
-
    LockInit(&m_nLockGameNum, NULL);
 }
 
 CLittleBlitzerDlg::~CLittleBlitzerDlg()
 {
-   for (int i = 0; i < m_nNumTournaments; i++)
+   for (int i = 0; i < MAX_THREADS; i++)
       m_Tournaments[i].Abort();
    for (const auto& m_nResult : m_nResults)
-      delete m_nResult;
-   delete m_nWins;
-   delete m_nLosses;
-   delete m_nDraws;
-   delete m_nGames;
-   delete m_dTotalTime;
-   delete m_dTotalSearches;
-   delete m_nTotalDepth;
-   delete m_nTotalDepthCount;
-   delete m_nTotalNPS;
-   delete m_nTotalNPSCount;
+      delete[] m_nResult;
+   delete[] m_nWins;
+   delete[] m_nLosses;
+   delete[] m_nDraws;
+   delete[] m_nGames;
+   delete[] m_dTotalTime;
+   delete[] m_dTotalSearches;
+   delete[] m_nTotalDepth;
+   delete[] m_nTotalDepthCount;
+   delete[] m_nTotalNPS;
+   delete[] m_nTotalNPSCount;
 
-   for (int w = 0; w < m_Tournaments[0].m_nNumStartPositions; w++)
-   {
-      delete m_Tournaments[0].m_sStartPositions[w];
-   }
-   delete m_Tournaments[0].m_sStartPositions;
-   delete m_Tournaments;
+   FreeStartPositions(m_Tournaments[0]);
+   delete[] m_Tournaments;
+   LockFree(&m_nLockGameNum);
 
 }
 
@@ -131,13 +150,13 @@ BOOL CLittleBlitzerDlg::OnInitDialog()
    GetModuleFileName(nullptr, sFile, 1024);
    char* sPath = GetFilePath(sFile);
    char sConfigPath[1024];
-   sprintf(sConfigPath, _T("%s\\Engines.lbe"), sPath);
+   sprintf_s(sConfigPath, _T("%s\\Engines.lbe"), sPath);
    m_wndEngineFile.SetWindowText(sConfigPath);
-   sprintf(sConfigPath, _T("%s\\Tournament.lbt"), sPath);
+   sprintf_s(sConfigPath, _T("%s\\Tournament.lbt"), sPath);
    m_wndTournFile.SetWindowText(sConfigPath);
-   sprintf(sConfigPath, _T("%s\\Results.pgn"), sPath);
+   sprintf_s(sConfigPath, _T("%s\\Results.pgn"), sPath);
    m_wndSavePGN.SetWindowText(sConfigPath);
-   delete sPath;
+   delete[] sPath;
 
    m_bPaused = false;
 
@@ -194,139 +213,60 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    if (f)
    {
       m_nNumTournaments = 0;
-      char sParam[50];
-      char sValue[100];
-
-      while (fscanf(f, "%s:", sParam) != EOF)
+      char line[2048];
+      while (fgets(line, sizeof(line), f))
       {
-         fscanf(f, "%s", &sValue);
-         if (!_stricmp(sParam, "Type:"))
+         char* separator = strchr(line, ':');
+         if (!separator) continue;
+         *separator = 0;
+         CString key(line);
+         CString value(separator + 1);
+         key.Trim();
+         value.Trim();
+
+         const long number = strtol(value, nullptr, 10);
+         if (!key.CompareNoCase("Type")) m_Tournaments[0].m_nType = number;
+         else if (!key.CompareNoCase("TC")) m_Tournaments[0].m_nTC = number;
+         else if (!key.CompareNoCase("Base")) m_Tournaments[0].m_nBase = MAX(1, number);
+         else if (!key.CompareNoCase("Inc")) m_Tournaments[0].m_nInc = MAX(0, number);
+         else if (!key.CompareNoCase("Rounds")) m_nNumGames = MAX(1, number);
+         else if (!key.CompareNoCase("Hash")) m_Tournaments[0].m_nHash = MAX(1, number);
+         else if (!key.CompareNoCase("Ponder")) m_Tournaments[0].m_bPonder = number != 0;
+         else if (!key.CompareNoCase("OwnBook")) m_Tournaments[0].m_bOwnBook = number != 0;
+         else if (!key.CompareNoCase("Variant")) m_Tournaments[0].m_nVariant = number == VARIANT_960 ? VARIANT_960 : VARIANT_STD;
+         else if (!key.CompareNoCase("NumParallel")) m_nNumTournaments = MIN(MAX_THREADS, MAX(1, number));
+         else if (!key.CompareNoCase("AdjudicateMateScore")) m_Tournaments[0].m_nAdjMateScore = MAX(1, labs(number));
+         else if (!key.CompareNoCase("AdjudicateMateMoves")) m_Tournaments[0].m_nAdjMateMoves = MIN(1000, MAX(1, number));
+         else if (!key.CompareNoCase("AdjudicateDrawMoves")) m_Tournaments[0].m_nAdjDrawMoves = MAX(1, number);
+         else if (!key.CompareNoCase("Randomize")) m_Tournaments[0].m_nRandomize = number != 0;
+         else if (!key.CompareNoCase("Position"))
          {
-            m_Tournaments[0].m_nType = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "TC:"))
-         {
-            m_Tournaments[0].m_nTC = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Base:"))
-         {
-            m_Tournaments[0].m_nBase = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Inc:"))
-         {
-            m_Tournaments[0].m_nInc = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Rounds:"))
-         {
-            m_nNumGames = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Hash:"))
-         {
-            m_Tournaments[0].m_nHash = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Ponder:"))
-         {
-            m_Tournaments[0].m_bPonder = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "OwnBook:"))
-         {
-            m_Tournaments[0].m_bOwnBook = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Variant:"))
-         {
-            m_Tournaments[0].m_nVariant = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "NumParallel:"))
-         {
-            m_nNumTournaments = atol(sValue);
-            m_nNumTournaments = MIN(MAX_THREADS, m_nNumTournaments);
-            m_nNumTournaments = MAX(0, m_nNumTournaments);
-         }
-         else if (!_stricmp(sParam, "AdjudicateMateScore:"))
-         {
-            m_Tournaments[0].m_nAdjMateScore = atol(sValue);
-            if (m_Tournaments[0].m_nAdjMateScore < 0) m_Tournaments[0].m_nAdjMateScore *= -1;
-         }
-         else if (!_stricmp(sParam, "AdjudicateMateMoves:"))
-         {
-            m_Tournaments[0].m_nAdjMateMoves = atol(sValue);
-            m_Tournaments[0].m_nAdjMateMoves = MIN(m_Tournaments[0].m_nAdjMateMoves, 1000);
-         }
-         else if (!_stricmp(sParam, "AdjudicateDrawMoves:"))
-         {
-            m_Tournaments[0].m_nAdjDrawMoves = atol(sValue);
-         }
-         else if (!_stricmp(sParam, "Position:"))
-         {
-            if (sValue[0] == 'F' && sValue[1] == 'E' && sValue[2] == 'N')
+            if (!value.Left(4).CompareNoCase("FEN:"))
             {
                m_nStartPositionType = 1;
                m_sStartPositionFile[0] = 0;
-               m_Tournaments[0].m_nNumStartPositions = 1;
+               FreeStartPositions(m_Tournaments[0]);
+               CString fen = value.Mid(4);
                m_Tournaments[0].m_sStartPositions = new char* [1];
-
-               char sFEN[128];
-               strncpy(sFEN, sValue + 4, 128);
-               int nFENLen = strlen(sValue) - 4;
-               while (true)
-               {
-                  const char c = fgetc(f);
-                  if (c == EOF || c == '\n') break;
-                  sFEN[nFENLen++] = c;
-               }
-               sFEN[nFENLen] = 0;
-
-               m_Tournaments[0].m_sStartPositions[0] = new char[strlen(sFEN) + 1];
-               strcpy(m_Tournaments[0].m_sStartPositions[0], sFEN);
+               m_Tournaments[0].m_sStartPositions[0] = new char[fen.GetLength() + 1];
+               strcpy_s(m_Tournaments[0].m_sStartPositions[0], fen.GetLength() + 1, fen);
+               m_Tournaments[0].m_nNumStartPositions = 1;
             }
-            else if (sValue[0] == 'E' && sValue[1] == 'P' && sValue[2] == 'D')
+            else if (!value.Left(4).CompareNoCase("EPD:"))
             {
                m_nStartPositionType = 2;
-               const char* sPath = sValue + 4;
-
-               char sFile[128];
-               strncpy(sFile, sPath, 128);
-               int nFileLen = strlen(sPath);
-               while (true)
-               {
-                  const char c = fgetc(f);
-                  if (c == EOF || c == '\n') break;
-                  sFile[nFileLen++] = c;
-               }
-               sFile[nFileLen] = 0;
-
-               strcpy(m_sStartPositionFile, sFile);
+               strncpy_s(m_sStartPositionFile, value.Mid(4), _TRUNCATE);
             }
-            else if (sValue[0] == 'P' && sValue[1] == 'G' && sValue[2] == 'N')
+            else if (!value.Left(4).CompareNoCase("PGN:"))
             {
                m_nStartPositionType = 3;
-               const char* sPath = sValue + 4;
-
-               char sFile[128];
-               strncpy(sFile, sPath, 128);
-               int nFileLen = strlen(sPath);
-               while (true)
-               {
-                  const char c = fgetc(f);
-                  if (c == EOF || c == '\n') break;
-                  sFile[nFileLen++] = c;
-               }
-               sFile[nFileLen] = 0;
-
-               strcpy(m_sStartPositionFile, sFile);
+               strncpy_s(m_sStartPositionFile, value.Mid(4), _TRUNCATE);
             }
             else
             {
                m_nStartPositionType = 0;
-               m_Tournaments[0].m_sStartPositions = new char* [1];
-               m_Tournaments[0].m_sStartPositions[0] = new char[100];
-               m_Tournaments[0].m_nNumStartPositions = 1;
-               strcpy(m_Tournaments[0].m_sStartPositions[0], "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+               SetDefaultStartPosition(m_Tournaments[0]);
             }
-         }
-         else if (!_stricmp(sParam, "Randomize:"))
-         {
-            m_Tournaments[0].m_nRandomize = atol(sValue);
          }
       }
       fclose(f);
@@ -362,11 +302,11 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    }
    else if (m_nStartPositionType == 1)
    {
-      strcpy(dlg.m_sStartingPosition, m_Tournaments[0].m_sStartPositions[0]);
+      strcpy_s(dlg.m_sStartingPosition, m_Tournaments[0].m_sStartPositions[0]);
    }
    else
    {
-      strcpy(dlg.m_sStartingPosition, m_sStartPositionFile);
+      strcpy_s(dlg.m_sStartingPosition, m_sStartPositionFile);
    }
    dlg.m_nRandomize = m_Tournaments[0].m_nRandomize;
 
@@ -389,35 +329,33 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    m_Tournaments[0].m_bOwnBook = dlg.m_nOwnBook;
    m_nStartPositionType = dlg.m_nPosition;
    char sFEN[MAX_FEN_LEN];
-   strcpy(sFEN, dlg.m_sStartingPosition);
+   strcpy_s(sFEN, dlg.m_sStartingPosition);
    if (m_nStartPositionType == 1)
    {
       m_nStartPositionType = 1;
       m_sStartPositionFile[0] = 0;
+      FreeStartPositions(m_Tournaments[0]);
       m_Tournaments[0].m_nNumStartPositions = 1;
       m_Tournaments[0].m_sStartPositions = new char* [1];
-      m_Tournaments[0].m_sStartPositions[0] = new char[strlen(sFEN)];
-      strcpy(m_Tournaments[0].m_sStartPositions[0], sFEN);
+      m_Tournaments[0].m_sStartPositions[0] = new char[strlen(sFEN) + 1];
+      strcpy_s(m_Tournaments[0].m_sStartPositions[0], strlen(sFEN) + 1, sFEN);
    }
    else if (m_nStartPositionType == 2)
    {
       m_nStartPositionType = 2;
-      strcpy(m_sStartPositionFile, sFEN);
+      strcpy_s(m_sStartPositionFile, sFEN);
       LoadEPDPositions(sFEN);
    }
    else if (m_nStartPositionType == 3)
    {
       m_nStartPositionType = 3;
-      strcpy(m_sStartPositionFile, sFEN);
+      strcpy_s(m_sStartPositionFile, sFEN);
       LoadPGNPositions(sFEN);
    }
    else
    {
       m_nStartPositionType = 0;
-      m_Tournaments[0].m_sStartPositions = new char* [1];
-      m_Tournaments[0].m_sStartPositions[0] = new char[100];
-      m_Tournaments[0].m_nNumStartPositions = 1;
-      strcpy(m_Tournaments[0].m_sStartPositions[0], "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+      SetDefaultStartPosition(m_Tournaments[0]);
    }
    m_Tournaments[0].m_nRandomize = dlg.m_nRandomize;
 
@@ -444,11 +382,11 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    fprintf(f, "Hash: %ld\n", m_Tournaments[0].m_nHash);
    fprintf(f, "NumParallel: %d\n", m_nNumTournaments);
    fprintf(f, "Variant: %d\n", m_Tournaments[0].m_nVariant);
-   char buf[MAX_FEN_LEN];
-   if (m_nStartPositionType == 0) sprintf(buf, "OPENING");
-   else if (m_nStartPositionType == 1) sprintf(buf, "FEN:%s", sFEN);
-   else if (m_nStartPositionType == 2) sprintf(buf, "EPD:%s", sFEN);
-   else if (m_nStartPositionType == 3) sprintf(buf, "PGN:%s", sFEN);
+   char buf[MAX_FEN_LEN + 5];
+   if (m_nStartPositionType == 0) sprintf_s(buf, "OPENING");
+   else if (m_nStartPositionType == 1) sprintf_s(buf, "FEN:%s", sFEN);
+   else if (m_nStartPositionType == 2) sprintf_s(buf, "EPD:%s", sFEN);
+   else if (m_nStartPositionType == 3) sprintf_s(buf, "PGN:%s", sFEN);
    fprintf(f, "Position: %s\n", buf);
    fprintf(f, "Randomize: %d\n", m_Tournaments[0].m_nRandomize);
    fprintf(f, "AdjudicateMateScore: %ld\n", m_Tournaments[0].m_nAdjMateScore);
@@ -465,12 +403,7 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
 
 void CLittleBlitzerDlg::LoadEPDPositions(const char* sPath)
 {
-   for (int w = 0; w < m_Tournaments[0].m_nNumStartPositions; w++)
-   {
-      delete m_Tournaments[0].m_sStartPositions[w];
-   }
-   delete m_Tournaments[0].m_sStartPositions;
-   m_Tournaments[0].m_nNumStartPositions = 0;
+   FreeStartPositions(m_Tournaments[0]);
 
    m_Tournaments[0].m_sStartPositions = new char* [MAX_START_POSITIONS];
    if (FILE* fepd = fopen(sPath, "rt"))
@@ -479,7 +412,7 @@ void CLittleBlitzerDlg::LoadEPDPositions(const char* sPath)
       {
          char sFEN[MAX_FEN_LEN];
          int i = 0;
-         char c = fgetc(fepd);
+         int c = fgetc(fepd);
          if (c == EOF) break;
          while (c != '\n' && c != '\r')
          {
@@ -496,8 +429,11 @@ void CLittleBlitzerDlg::LoadEPDPositions(const char* sPath)
             if (i == MAX_FEN_LEN - 1) break;
          }
          sFEN[i] = 0;
-         m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions] = new char[strlen(sFEN) + 1];
-         strcpy(m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions++], sFEN);
+         if (i > 0)
+         {
+            m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions] = new char[strlen(sFEN) + 1];
+            strcpy(m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions++], sFEN);
+         }
          if (c == EOF) break;
          if (m_Tournaments[0].m_nNumStartPositions == MAX_START_POSITIONS) break;
       } while (true);
@@ -505,16 +441,15 @@ void CLittleBlitzerDlg::LoadEPDPositions(const char* sPath)
    }
    else
    {
-      m_Tournaments[0].m_nNumStartPositions = 1;
-      m_Tournaments[0].m_sStartPositions = new char* [1];
-      m_Tournaments[0].m_sStartPositions[0] = new char[100];
-      strcpy(m_Tournaments[0].m_sStartPositions[0], "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+      SetDefaultStartPosition(m_Tournaments[0]);
    }
+   if (m_Tournaments[0].m_nNumStartPositions == 0)
+      SetDefaultStartPosition(m_Tournaments[0]);
 }
 
-char CLittleBlitzerDlg::ReadLine(FILE* f, char* s)
+int CLittleBlitzerDlg::ReadLine(FILE* f, char* s)
 {
-   char c = fgetc(f);
+   int c = fgetc(f);
    int i = 0;
    while (c != '\n' && c != '\r')
    {
@@ -536,12 +471,7 @@ char CLittleBlitzerDlg::ReadLine(FILE* f, char* s)
 
 void CLittleBlitzerDlg::LoadPGNPositions(const char* sPath)
 {
-   for (int w = 0; w < m_Tournaments[0].m_nNumStartPositions; w++)
-   {
-      delete m_Tournaments[0].m_sStartPositions[w];
-   }
-   delete m_Tournaments[0].m_sStartPositions;
-   m_Tournaments[0].m_nNumStartPositions = 0;
+   FreeStartPositions(m_Tournaments[0]);
 
    m_Tournaments[0].m_sStartPositions = new char* [MAX_START_POSITIONS];
    if (FILE* fepd = fopen(sPath, "rt"))
@@ -549,35 +479,32 @@ void CLittleBlitzerDlg::LoadPGNPositions(const char* sPath)
       do
       {
          char sLine[MAX_FEN_LEN];
-         char c = ReadLine(fepd, sLine);
+         int c = ReadLine(fepd, sLine);
          if (c == EOF) break;
-         if (sLine[0] == '[' && sLine[1] == 'F' && sLine[2] == 'E' && sLine[3] == 'N')
+         const size_t lineLength = strlen(sLine);
+         if (lineLength >= 8 && !_strnicmp(sLine, "[FEN ", 5))
          {
             char sFEN[MAX_FEN_LEN];
-            strncpy(sFEN, sLine + 6, strlen(sLine) - 8);
-            sFEN[strlen(sLine) - 8] = 0;
+            const size_t fenLength = lineLength - 8;
+            strncpy_s(sFEN, sLine + 6, fenLength);
+            sFEN[fenLength] = 0;
             m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions] = new char[strlen(sFEN) + 1];
             strcpy(m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions++], sFEN);
          }
          else if (sLine[0] == '1' && sLine[1] == '.')
          {
-            char sGame[10240];
-            sGame[0] = 0;
-            long len = 0;
+            CString sGame;
             do
             {
-               const int l = strlen(sLine);
-               strncat(sGame, sLine, MIN(10240, l));
+               if (!sGame.IsEmpty()) sGame.AppendChar(' ');
+               sGame.Append(sLine);
                c = ReadLine(fepd, sLine);
                if (c == EOF) break;
                if (sLine[0] == 0) break;
                if (sLine[0] == '[') break;
-               len += l;
-               sGame[len++] = ' ';
-               sGame[len] = 0;
             } while (true);
             char sFEN[MAX_FEN_LEN];
-            GameMoves2FEN(sGame, sFEN);
+            GameMoves2FEN(sGame.GetBuffer(), sFEN);
             m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions] = new char[strlen(sFEN) + 1];
             strcpy(m_Tournaments[0].m_sStartPositions[m_Tournaments[0].m_nNumStartPositions++], sFEN);
          }
@@ -588,11 +515,10 @@ void CLittleBlitzerDlg::LoadPGNPositions(const char* sPath)
    }
    else
    {
-      m_Tournaments[0].m_nNumStartPositions = 1;
-      m_Tournaments[0].m_sStartPositions = new char* [1];
-      m_Tournaments[0].m_sStartPositions[0] = new char[100];
-      strcpy(m_Tournaments[0].m_sStartPositions[0], "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+      SetDefaultStartPosition(m_Tournaments[0]);
    }
+   if (m_Tournaments[0].m_nNumStartPositions == 0)
+      SetDefaultStartPosition(m_Tournaments[0]);
 }
 
 void CLittleBlitzerDlg::LoadEngineSettings()
@@ -617,51 +543,52 @@ void CLittleBlitzerDlg::LoadEngineSettings()
    char sEnginePath[nMaxLen];
 
    m_nNumEngines = 0;
-   int c = 0;
    char sLine[nMaxLen];
-   while (c != EOF)
+   while (fgets(sLine, sizeof(sLine), f))
    {
-      int i = 0;
       sEnginePath[0] = 0;
-      while ((c = fgetc(f)) != EOF && c != '\n' && c != '\r' && i < nMaxLen) sLine[i++] = c;
-      sLine[i] = 0;
+      sLine[strcspn(sLine, "\r\n")] = 0;
       CString sUpperLine = sLine;
       sUpperLine.MakeUpper();
 
-      if (sUpperLine.Find("ENGINE") == 0)
+      if (sUpperLine.Find("ENGINE=") == 0)
       {
+         if (m_nNumEngines >= MAX_ENGINES)
+         {
+            MessageBox(_T("Only the first 100 engines were loaded."), _T("Engine limit"), MB_OK | MB_ICONWARNING);
+            break;
+         }
          CEngine e;
-         strncpy(sEnginePath, sLine + 7, strlen(sLine) - 6);
+         strcpy_s(sEnginePath, sLine + 7);
          e.m_sPath = new char[strlen(sEnginePath) + 1];
-         strcpy(e.m_sPath, sEnginePath);
+         strcpy_s(e.m_sPath, strlen(sEnginePath) + 1, sEnginePath);
          m_Engines[m_nNumEngines++] = e;
          m_Engines[m_nNumEngines - 1].m_sParameterNames = new char* [MAX_PARMS];
          m_Engines[m_nNumEngines - 1].m_sParameterValues = new char* [MAX_PARMS];
       }
-      else if (sUpperLine.Find('=') != -1)
+      else if (sUpperLine.Find('=') != -1 && m_nNumEngines > 0)
       {
          if (m_Engines[m_nNumEngines - 1].m_nNumParameters < MAX_PARMS)
          {
-            if (const int pos = sUpperLine.Find('='); !strncmp(sUpperLine, "LB_NAME", pos))
+            const int pos = sUpperLine.Find('=');
+            CString parameterName = CString(sLine).Left(pos);
+            CString parameterValue = CString(sLine).Mid(pos + 1);
+            parameterName.Trim();
+            parameterValue.Trim();
+            if (!parameterName.CompareNoCase("LB_Name"))
             {
-               m_Engines[m_nNumEngines - 1].m_sLBName = new char[strlen(sLine) - pos];
-               strncpy(m_Engines[m_nNumEngines - 1].m_sLBName, sLine + pos + 1, strlen(sLine) - pos - 1);
-               m_Engines[m_nNumEngines - 1].m_sLBName[strlen(sLine) - pos - 1] = 0;
+               delete[] m_Engines[m_nNumEngines - 1].m_sLBName;
+               m_Engines[m_nNumEngines - 1].m_sLBName = new char[parameterValue.GetLength() + 1];
+               strcpy_s(m_Engines[m_nNumEngines - 1].m_sLBName, parameterValue.GetLength() + 1, parameterValue);
             }
             else
             {
-               m_Engines[m_nNumEngines - 1].m_sParameterNames[m_Engines[m_nNumEngines - 1].m_nNumParameters] = new char[
-                  pos + 1];
-               m_Engines[m_nNumEngines - 1].m_sParameterValues[m_Engines[m_nNumEngines - 1].m_nNumParameters] = new char
-                  [strlen(sLine) - pos];
-               strncpy(m_Engines[m_nNumEngines - 1].m_sParameterNames[m_Engines[m_nNumEngines - 1].m_nNumParameters],
-                  sLine, pos);
-               m_Engines[m_nNumEngines - 1].m_sParameterNames[m_Engines[m_nNumEngines - 1].m_nNumParameters][pos] = 0;
-               strncpy(m_Engines[m_nNumEngines - 1].m_sParameterValues[m_Engines[m_nNumEngines - 1].m_nNumParameters],
-                  sLine + pos + 1, strlen(sLine) - pos - 1);
-               m_Engines[m_nNumEngines - 1].m_sParameterValues[m_Engines[m_nNumEngines - 1].m_nNumParameters][
-                  strlen(sLine) - pos - 1] = 0;
-               m_Engines[m_nNumEngines - 1].m_nNumParameters++;
+               CEngine& engine = m_Engines[m_nNumEngines - 1];
+               const int index = engine.m_nNumParameters++;
+               engine.m_sParameterNames[index] = new char[parameterName.GetLength() + 1];
+               engine.m_sParameterValues[index] = new char[parameterValue.GetLength() + 1];
+               strcpy_s(engine.m_sParameterNames[index], parameterName.GetLength() + 1, parameterName);
+               strcpy_s(engine.m_sParameterValues[index], parameterValue.GetLength() + 1, parameterValue);
             }
          }
       }
@@ -672,9 +599,11 @@ void CLittleBlitzerDlg::LoadEngineSettings()
    {
       if (!m_Engines[i].Init())
       {
+         m_nNumEngines = i;
+         MessageBox(_T("Engine loading stopped because an engine failed to initialize."), _T("Engine error"), MB_OK | MB_ICONERROR);
          break;
       }
-      m_Engines[i].Send(_T("quit"));
+      m_Engines[i].Quit();
    }
 
    SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
@@ -682,6 +611,16 @@ void CLittleBlitzerDlg::LoadEngineSettings()
 
 void CLittleBlitzerDlg::OnBnClickedStart()
 {
+   if (m_nNumEngines < 2)
+   {
+      MessageBox(_T("Load at least two valid engines before starting."), _T("Cannot start"), MB_OK | MB_ICONWARNING);
+      return;
+   }
+   if (m_nNumGames <= 0 || m_nNumTournaments <= 0 || m_Tournaments[0].m_nNumStartPositions <= 0)
+   {
+      MessageBox(_T("Tournament settings must specify at least one game, worker, and starting position."), _T("Cannot start"), MB_OK | MB_ICONWARNING);
+      return;
+   }
    if (!InitPGN()) return;
 
    m_nGameNum = 0;
@@ -690,31 +629,47 @@ void CLittleBlitzerDlg::OnBnClickedStart()
    m_nNumActiveTournaments = 0;
    for (auto& m_nResult : m_nResults)
    {
+      delete[] m_nResult;
       m_nResult = new long[m_nNumEngines];
       memset(const_cast<long*>(m_nResult), 0, sizeof(long) * m_nNumEngines);
    }
+   delete[] m_nGames;
    m_nGames = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nGames), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_nWins;
    m_nWins = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nWins), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_nLosses;
    m_nLosses = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nLosses), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_nDraws;
    m_nDraws = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nDraws), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_dTotalTime;
    m_dTotalTime = new double[m_nNumEngines];
    memset(const_cast<double*>(m_dTotalTime), 0, sizeof(double) * m_nNumEngines);
+   delete[] m_dTotalSearches;
    m_dTotalSearches = new double[m_nNumEngines];
    memset(const_cast<double*>(m_dTotalSearches), 0, sizeof(double) * m_nNumEngines);
+   delete[] m_nTotalDepth;
    m_nTotalDepth = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nTotalDepth), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_nTotalDepthCount;
    m_nTotalDepthCount = new long[m_nNumEngines];
    memset(const_cast<long*>(m_nTotalDepthCount), 0, sizeof(long) * m_nNumEngines);
+   delete[] m_nTotalNPS;
    m_nTotalNPS = new long long[m_nNumEngines];
    memset(const_cast<long long*>(m_nTotalNPS), 0, sizeof(long long) * m_nNumEngines);
+   delete[] m_nTotalNPSCount;
    m_nTotalNPSCount = new long long[m_nNumEngines];
    memset(const_cast<long long*>(m_nTotalNPSCount), 0, sizeof(long long) * m_nNumEngines);
+   m_dTotalGamesLen = 0;
 
    m_nTimeTaken.Start();
+
+   std::random_device randomDevice;
+   const unsigned long long openingSeed =
+      static_cast<unsigned long long>(randomDevice()) << 32 | randomDevice();
 
    for (int x = 0; x < MAX_THREADS; x++)
    {
@@ -725,16 +680,15 @@ void CLittleBlitzerDlg::OnBnClickedStart()
       }
       m_Tournaments[x].m_pWnd = this;
       m_Tournaments[x].m_nThreadID = x;
+      m_Tournaments[x].m_nOpeningSeed = openingSeed;
       m_Tournaments[x].m_nRound = 0;
-      if (x < m_nNumTournaments)
+      if (x < m_nNumTournaments && m_nGameNum < m_nNumGames)
       {
          m_nNumActiveTournaments++;
          m_Tournaments[x].m_nRound = GetNextRound();
          CWinThread* pThread = AfxBeginThread(RunTournament, &m_Tournaments[x]);
       }
    }
-   m_nNumActiveTournaments = m_nNumTournaments;
-
    m_wndStart.EnableWindow(false);
    m_wndLoadEngines.EnableWindow(false);
    m_wndLoadTournament.EnableWindow(false);
@@ -880,6 +834,15 @@ LRESULT CLittleBlitzerDlg::OnGameDone(const WPARAM wParam, const LPARAM lParam)
    }
    UpdateNumTourneys();
 
+   if (m_nNumActiveTournaments == 0 && m_nNumGamesPlayed >= m_nNumGames)
+   {
+      m_wndStart.EnableWindow(true);
+      m_wndLoadEngines.EnableWindow(true);
+      m_wndLoadTournament.EnableWindow(true);
+      m_bPaused = false;
+      m_wndPause.SetWindowText("Pause\n(zero threads)");
+   }
+
    return 0;
 }
 
@@ -889,6 +852,7 @@ bool CLittleBlitzerDlg::InitPGN()
 
    if (FILE* fpgn; fpgn = fopen(m_sResultsPath.GetBuffer(), "rt"))
    {
+      fclose(fpgn);
       if (const int r = MessageBox(
          "The results file already exists, do you wish to append to the current file?\nYes = Append\nNo = Overwrite",
          "WARNING", MB_YESNOCANCEL); r == 6)
@@ -973,7 +937,10 @@ void CLittleBlitzerDlg::UpdatePGN(TResult* r)
    FILE* fpgn;
 
    if (!(fpgn = fopen(m_sResultsPath.GetBuffer(), "at")))
+   {
+      delete[] r->sSAN;
       return;
+   }
 
    fprintf(fpgn, "[White \"%s\"]\n", m_Engines[r->nWhite].m_sName);
    fprintf(fpgn, "[Black \"%s\"]\n", m_Engines[r->nBlack].m_sName);
@@ -984,11 +951,12 @@ void CLittleBlitzerDlg::UpdatePGN(TResult* r)
       fprintf(fpgn, "[SetUp \"1\"]\n");
       fprintf(fpgn, "[FEN \"%s\"]\n", r->sFEN);
       fprintf(fpgn, "\n%s %s\n\n", r->sSAN, sResult);
-      delete r->sSAN;
+      delete[] r->sSAN;
    }
    else
    {
       fprintf(fpgn, "\n%s\n\n", sResult);
+      delete[] r->sSAN;
    }
 
    fclose(fpgn);
@@ -1082,12 +1050,12 @@ void CLittleBlitzerDlg::OnBnClickedPause()
       m_wndPause.SetWindowText("Pause\n(zero threads)");
       for (int id = 0; id < m_nNumTournaments; id++)
       {
-         if (!m_Tournaments[id].m_bRunning)
+         if (!m_Tournaments[id].m_bRunning && m_nGameNum < m_nNumGames)
          {
             m_Tournaments[id].m_nRound = GetNextRound();
             CWinThread* pThread = AfxBeginThread(RunTournament, &m_Tournaments[id]);
+            m_nNumActiveTournaments++;
          }
-         m_nNumActiveTournaments = m_nNumTournaments;
       }
    }
    else
@@ -1146,7 +1114,8 @@ void CLittleBlitzerDlg::OnBnClickedInc()
 
    m_nNumTournaments++;
 
-   if (m_Tournaments[m_nNumTournaments - 1].m_nNumEngines > 0 && !m_Tournaments[m_nNumTournaments - 1].m_bRunning)
+   if (m_Tournaments[m_nNumTournaments - 1].m_nNumEngines > 0 &&
+      !m_Tournaments[m_nNumTournaments - 1].m_bRunning && m_nGameNum < m_nNumGames)
    {
       m_nNumActiveTournaments++;
       m_Tournaments[m_nNumTournaments - 1].m_nRound = GetNextRound();
@@ -1185,7 +1154,7 @@ void CLittleBlitzerDlg::OnBnClickedChkLog()
 
 void CLittleBlitzerDlg::OnBnClickedChkIllegal()
 {
-   g_bDumpIllegalMoves = m_wndChkLog.GetCheck();
+   g_bDumpIllegalMoves = m_wndDumpIllegalMoves.GetCheck();
 }
 
 void CLittleBlitzerDlg::OnBnClickedChkFullPGN()

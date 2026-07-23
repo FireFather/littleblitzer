@@ -40,12 +40,104 @@ CEngine::CEngine() : m_sParameterNames(nullptr), m_sParameterValues(nullptr), m_
    LockInit(&m_nLockEngine, NULL);
 }
 
+CEngine::CEngine(const CEngine& other) : CEngine()
+{
+   CopyConfiguration(other);
+}
+
+CEngine& CEngine::operator=(const CEngine& other)
+{
+   if (this != &other)
+   {
+      CloseRuntime();
+      FreeConfiguration();
+      CopyConfiguration(other);
+   }
+   return *this;
+}
+
 CEngine::~CEngine()
-= default;
+{
+   CloseRuntime();
+   FreeConfiguration();
+   LockFree(&m_nLockEngine);
+}
+
+namespace
+{
+char* DuplicateString(const char* value)
+{
+   if (!value) return nullptr;
+   const size_t length = strlen(value) + 1;
+   char* copy = new char[length];
+   strcpy_s(copy, length, value);
+   return copy;
+}
+}
+
+void CEngine::CopyConfiguration(const CEngine& other)
+{
+   m_sPath = DuplicateString(other.m_sPath);
+   m_sName = DuplicateString(other.m_sName);
+   m_sLBName = DuplicateString(other.m_sLBName);
+   m_sAuthor = DuplicateString(other.m_sAuthor);
+   m_nHash = other.m_nHash;
+   m_bPonder = other.m_bPonder;
+   m_bOwnBook = other.m_bOwnBook;
+   m_nVariant = other.m_nVariant;
+   m_nNumParameters = other.m_nNumParameters;
+
+   if (m_nNumParameters > 0)
+   {
+      m_sParameterNames = new char* [m_nNumParameters]{};
+      m_sParameterValues = new char* [m_nNumParameters]{};
+      for (int i = 0; i < m_nNumParameters; ++i)
+      {
+         m_sParameterNames[i] = DuplicateString(other.m_sParameterNames[i]);
+         m_sParameterValues[i] = DuplicateString(other.m_sParameterValues[i]);
+      }
+   }
+}
+
+void CEngine::FreeConfiguration()
+{
+   delete[] m_sPath;
+   delete[] m_sName;
+   delete[] m_sLBName;
+   delete[] m_sAuthor;
+   for (int i = 0; i < m_nNumParameters; ++i)
+   {
+      delete[] m_sParameterNames[i];
+      delete[] m_sParameterValues[i];
+   }
+   delete[] m_sParameterNames;
+   delete[] m_sParameterValues;
+   m_sPath = m_sName = m_sLBName = m_sAuthor = nullptr;
+   m_sParameterNames = m_sParameterValues = nullptr;
+   m_nNumParameters = 0;
+}
+
+void CEngine::CloseRuntime()
+{
+   delete[] m_sBuffer[READ];
+   m_sBuffer[READ] = nullptr;
+   m_nBufferSize = 0;
+
+   for (HANDLE* handle : { &m_nPipeRead[READ], &m_nPipeRead[WRITE], &m_nPipeWrite[READ], &m_nPipeWrite[WRITE], &m_nProcess })
+   {
+      if (*handle)
+      {
+         CloseHandle(*handle);
+         *handle = nullptr;
+      }
+   }
+}
 
 bool CEngine::Init()
 {
-   if (m_sPath[0] == 0) return false;
+   if (!m_sPath || m_sPath[0] == 0) return false;
+
+   CloseRuntime();
 
    m_sBuffer[READ] = new char[IO_BUFFER + 1];
    SECURITY_ATTRIBUTES saAttr;
@@ -60,6 +152,7 @@ bool CEngine::Init()
       CString s;
       s.Format(_T("Count not create read pipe for %s"), m_sPath);
       MessageBox(nullptr, s, _T("Error"), MB_OK);
+      CloseRuntime();
       return false;
    }
 
@@ -71,6 +164,7 @@ bool CEngine::Init()
       CString s;
       s.Format(_T("Count not set named pipe for %s"), m_sPath);
       MessageBox(nullptr, s, _T("Error"), MB_OK);
+      CloseRuntime();
       return false;
    }
 
@@ -80,6 +174,7 @@ bool CEngine::Init()
       CString s;
       s.Format(_T("Count not create write pipe for %s"), m_sPath);
       MessageBox(nullptr, s, _T("Error"), MB_OK);
+      CloseRuntime();
       return false;
    }
 
@@ -91,8 +186,14 @@ bool CEngine::Init()
       CString s;
       s.Format(_T("Could not load process %s (%lu)"), m_sPath, GetLastError());
       MessageBox(nullptr, s, _T("Error"), MB_OK);
+      CloseRuntime();
       return false;
    }
+
+   CloseHandle(m_nPipeWrite[READ]);
+   m_nPipeWrite[READ] = nullptr;
+   CloseHandle(m_nPipeRead[WRITE]);
+   m_nPipeRead[WRITE] = nullptr;
 
    m_nBufferSize = 0;
 
@@ -101,14 +202,22 @@ bool CEngine::Init()
 
    do
    {
-      GetLine(&sLine);
+      if (!GetLine(&sLine))
+      {
+         Quit();
+         return false;
+      }
    } while (sLine.Find("id name") == -1);
    long a, b, c;
    ProcessInput(sLine, &a, &b, &c);
 
    do
    {
-      GetLine(&sLine);
+      if (!GetLine(&sLine))
+      {
+         Quit();
+         return false;
+      }
       long i, j;
       ProcessInput(sLine, &i, &j, &c);
    } while (sLine.Find("uciok") == -1);
@@ -130,7 +239,11 @@ bool CEngine::Init()
 
    do
    {
-      GetLine(&sLine);
+      if (!GetLine(&sLine))
+      {
+         Quit();
+         return false;
+      }
    } while (sLine.Find("readyok") == -1);
 
    return true;
@@ -145,8 +258,7 @@ void CEngine::NewGame()
    Send("isready");
    do
    {
-      GetLine(&sLine);
-      Sleep(10);
+      if (!GetLine(&sLine)) return;
    } while (sLine.Find("readyok") == -1);
 }
 
@@ -195,7 +307,13 @@ CString CEngine::Search(const CString& sStartingPositionFEN, const CString& sMov
 
    do
    {
-      GetLine(&sLine);
+      const double elapsed = t->GetMS();
+      const DWORD remaining = static_cast<DWORD>(MAX(1.0, nTimeOut + 1000.0 - elapsed));
+      if (!GetLine(&sLine, remaining))
+      {
+         t->Stop();
+         return CString();
+      }
       t->Stop();
       ProcessInput(sLine, nDepth, nNPS, nScore);
    } while (sLine.Find("bestmove") == -1
@@ -206,7 +324,7 @@ CString CEngine::Search(const CString& sStartingPositionFEN, const CString& sMov
       ASSERT(false);
    }
 
-   strncpy(m_sLastOutput, sLine.GetBuffer(), 100);
+   strncpy_s(m_sLastOutput, sLine.GetBuffer(), 99);
    m_sLastOutput[99] = 0;
 
    return sLine;
@@ -222,8 +340,17 @@ void CEngine::Quit()
 {
    Lock(&m_nLockEngine);
 
-   Send("stop");
-   Send("quit");
+   if (!m_nProcess)
+   {
+      Unlock(&m_nLockEngine);
+      return;
+   }
+
+   if (m_nPipeWrite[WRITE])
+   {
+      Send("stop");
+      Send("quit");
+   }
 
    if (const DWORD r = WaitForSingleObject(m_nProcess, 30000); r == WAIT_TIMEOUT)
    {
@@ -232,22 +359,13 @@ void CEngine::Quit()
          if (const DWORD e = GetLastError(); e != 5)
          {
             char err[100];
-            sprintf(err, static_cast<const char*>("Terminate %s errored: %lu"), m_sName, e);
+            sprintf_s(err, static_cast<const char*>("Terminate %s errored: %lu"), m_sName ? m_sName : "engine", e);
             AfxMessageBox(err);
          }
       }
    }
 
-   delete m_sBuffer[READ];
-   delete m_sName;
-   delete m_sAuthor;
-
-   m_sBuffer[READ] = nullptr;
-   m_sName = nullptr;
-   m_sAuthor = nullptr;
-
-   CloseHandle(m_nPipeWrite[WRITE]);
-   CloseHandle(m_nPipeRead[READ]);
+   CloseRuntime();
 
    Unlock(&m_nLockEngine);
 }
@@ -258,11 +376,12 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
 
    if (sLine.GetLength() == 0) return;
 
-   int nNumWords = GetWords(sLine, &sWords);
+   GetWords(sLine, &sWords);
+   if (sWords.IsEmpty()) return;
 
    if (!sWords.GetAt(0).CompareNoCase(_T("info")))
    {
-      for (int i = 1; i < sWords.GetCount(); i++)
+      for (int i = 1; i + 1 < sWords.GetCount(); i++)
       {
          if (const CString& s = sWords.GetAt(i); !s.CompareNoCase(_T("depth")))
          {
@@ -290,7 +409,7 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
    }
    else if (!sWords.GetAt(0).CompareNoCase(_T("id")))
    {
-      if (!sWords.GetAt(1).CompareNoCase(_T("name")))
+      if (sWords.GetCount() >= 3 && !sWords.GetAt(1).CompareNoCase(_T("name")))
       {
          int nLen = 0;
          for (int i = 2; i < sWords.GetSize(); i++)
@@ -299,12 +418,14 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
          }
          if (m_sLBName)
          {
+            delete[] m_sName;
             m_sName = new char[strlen(m_sLBName) + 1];
             strncpy(m_sName, m_sLBName, strlen(m_sLBName));
             m_sName[strlen(m_sLBName)] = 0;
          }
          else
          {
+            delete[] m_sName;
             m_sName = new char[nLen + 1];
             m_sName[0] = 0;
             for (int i = 0; i < sWords.GetSize() - 2; i++)
@@ -316,11 +437,12 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
             m_sName[nLen - 1] = 0;
          }
       }
-      else if (!sWords.GetAt(1).CompareNoCase(_T("author")))
+      else if (sWords.GetCount() >= 3 && !sWords.GetAt(1).CompareNoCase(_T("author")))
       {
          CString s = sWords.GetAt(2);
+         delete[] m_sAuthor;
          m_sAuthor = new char[s.GetLength() + 1];
-         strcpy(m_sAuthor, s.GetBuffer());
+         strcpy_s(m_sAuthor, s.GetLength() + 1, s.GetBuffer());
       }
    }
    else if (!sWords.GetAt(0).CompareNoCase(_T("option")))
@@ -350,7 +472,7 @@ void CEngine::Send(const char format[], ...)
    char buf[4096];
    va_list arg_list;
    va_start(arg_list, format);
-   vsprintf(buf, format, arg_list);
+   _vsnprintf_s(buf, sizeof(buf), _TRUNCATE, format, arg_list);
    va_end(arg_list);
 
    const CString sLine(buf);
@@ -359,6 +481,8 @@ void CEngine::Send(const char format[], ...)
 
 void CEngine::Send(CString sLine)
 {
+   if (sLine.IsEmpty() || !m_nPipeWrite[WRITE]) return;
+
    DWORD dwWritten;
 
    if (sLine[sLine.GetLength() - 1] != '\n')
@@ -366,7 +490,7 @@ void CEngine::Send(CString sLine)
       sLine.Append(_T("\n"));
    }
 
-   Log("-->(%s) %s", m_sName, sLine);
+   Log("-->(%s) %s", m_sName ? m_sName : "engine", sLine);
 
    if (!WriteFile(m_nPipeWrite[WRITE], sLine, sLine.GetLength(), &dwWritten, nullptr))
    {
@@ -374,27 +498,35 @@ void CEngine::Send(CString sLine)
 
 }
 
-void CEngine::GetLine(CString* sLine)
+bool CEngine::GetLine(CString* sLine, const DWORD nTimeoutMs)
 {
-   while (!IsDataWaiting()
-      && UpdateBuffer()) {
+   if (!sLine) return false;
+   sLine->Empty();
+   const ULONGLONG deadline = GetTickCount64() + nTimeoutMs;
+   while (!IsDataWaiting())
+   {
+      UpdateBuffer();
+      if (IsDataWaiting()) break;
+      if (!m_nProcess || WaitForSingleObject(m_nProcess, 0) == WAIT_OBJECT_0 || GetTickCount64() >= deadline)
+         return false;
+      Sleep(5);
    }
 
-   if (!m_nBufferSize) return;
+   if (!m_nBufferSize) return false;
 
    const auto p = static_cast<char*>(memchr(m_sBuffer[READ], '\n', m_nBufferSize));
-   if (!p) return;
+   if (!p) return false;
 
    const int nLen = p - m_sBuffer[READ] + 1;
    ASSERT(nLen > 0);
    int n = nLen;
    if (m_sBuffer[READ][nLen - 1] == '\r' || m_sBuffer[READ][nLen - 1] == '\n') n--;
-   if (m_sBuffer[READ][nLen - 2] == '\r' || m_sBuffer[READ][nLen - 2] == '\n') n--;
+   if (nLen >= 2 && (m_sBuffer[READ][nLen - 2] == '\r' || m_sBuffer[READ][nLen - 2] == '\n')) n--;
 
-   char logbuf[10240];
-   strncpy(logbuf, m_sBuffer[READ], nLen);
+   char logbuf[IO_BUFFER + 1];
+   strncpy_s(logbuf, m_sBuffer[READ], nLen);
    logbuf[nLen - 1] = 0;
-   Log("<--(%s) %s", m_sName, logbuf);
+   Log("<--(%s) %s", m_sName ? m_sName : "engine", logbuf);
 
    sLine->SetString(m_sBuffer[READ], n);
    for (int i = 0; i < m_nBufferSize - nLen; i++)
@@ -403,6 +535,7 @@ void CEngine::GetLine(CString* sLine)
    }
    m_nBufferSize -= nLen;
    m_sBuffer[READ][m_nBufferSize] = 0;
+   return true;
 }
 
 bool CEngine::IsDataWaiting() const
@@ -415,15 +548,12 @@ bool CEngine::IsDataWaiting() const
 bool CEngine::UpdateBuffer()
 {
    const int nSize = IO_BUFFER - m_nBufferSize;
+   if (!m_nPipeRead[READ] || nSize <= 0) return false;
 
-   DWORD dwRead;
+   DWORD dwRead = 0;
 
    if (!ReadFile(m_nPipeRead[READ], m_sBuffer[READ] + m_nBufferSize, nSize, &dwRead, nullptr))
    {
-      if (dwRead == 0)
-      {
-         Sleep(10);
-      }
       return false;
    }
    ASSERT(dwRead > 0);

@@ -70,7 +70,7 @@ Starting Positions:
    FEN: Specify a single position via a FEN string.
    EPD: Load starting positions from an EPD file. Positions are used sequentially and fairly - i.e. each engine plays both white and black against each opponent.
    PGN: Load starting positions from a PGN file. If it sees [FEN] tags it will load that position. If not,  it will play through all moves shown in the game and the resulting position will form the starting position.
-   Randomize: Randomly selects a game from the loaded opening positions. Note that this means engines A and B will not necessarily play the same opening against each other as different colours. However, over enough games this potential advantage should not cause a problem.
+   Randomize: Randomly selects from the loaded opening positions. Colour-reversed paired games use the same position so that each engine plays both White and Black from it.
 
 
 - 4. Click the Start New button. If the results.pgn file specified already exists, you will be asked to append or overwrite.

@@ -26,3 +26,6 @@
 
 #include <afxcontrolbars.h>            
 
+#include <mutex>
+#include <random>
+

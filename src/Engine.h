@@ -10,6 +10,8 @@ class CEngine
 {
 public:
    CEngine();
+   CEngine(const CEngine& other);
+   CEngine& operator=(const CEngine& other);
    ~CEngine();
 
    CRITICAL_SECTION m_nLockEngine;
@@ -35,7 +37,7 @@ public:
 
    void Send(CString sLine);
    void Send(const char format[], ...);
-   void GetLine(CString* sLine);
+   bool GetLine(CString* sLine, DWORD nTimeoutMs = 30000);
    [[nodiscard]] bool IsDataWaiting() const;
    bool UpdateBuffer();
    void ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long* nScore);
@@ -47,4 +49,9 @@ public:
       long nWhiteInc, long nBlackInc, long nTimeOut, long* nDepth, long* nNPS, long* nScore, CTimer* t);
    void Stop();
    void Quit();
+
+private:
+   void CopyConfiguration(const CEngine& other);
+   void FreeConfiguration();
+   void CloseRuntime();
 };

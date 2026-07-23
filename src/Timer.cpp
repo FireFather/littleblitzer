@@ -13,6 +13,7 @@ CTimer::~CTimer()
 
 void CTimer::Start()
 {
+   m_nT2.QuadPart = 0;
    QueryPerformanceCounter(&m_nT1);
 }
 

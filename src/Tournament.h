@@ -28,6 +28,7 @@ public:
    int m_nNumStartPositions;
    char** m_sStartPositions;
    int m_nRandomize;
+   unsigned long long m_nOpeningSeed;
 
    long m_nAdjMateScore;
    long m_nAdjMateMoves;

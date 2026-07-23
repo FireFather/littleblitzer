@@ -57,6 +57,12 @@ int GetDistance(const int a, const int b)
 
 void InitialiseArrays()
 {
+   static std::mutex initializationMutex;
+   const std::lock_guard<std::mutex> lock(initializationMutex);
+   static bool initialized = false;
+   if (initialized) return;
+   initialized = true;
+
    int i, j, k;
    BitBoard bb = 1;
 
@@ -408,7 +414,6 @@ void CreateStartingPosition(TBoard* b, const int nVariant)
 {
    int i;
 
-   InitialiseArrays();
    ZeroBoard(b);
 
    for (i = 8; i <= 15; i++)
@@ -441,12 +446,16 @@ void CreateStartingPosition(TBoard* b, const int nVariant)
    }
    else if (nVariant == VARIANT_960)
    {
-      srand(time(nullptr));
-      int r = rand() % 4;
+      const auto randomModulo = [](const unsigned int divisor)
+      {
+         thread_local std::mt19937 generator(std::random_device{}());
+         return std::uniform_int_distribution<int>(0, static_cast<int>(divisor) - 1)(generator);
+      };
+      int r = randomModulo(4);
       b->nPieces[A1 - 2 * r] = PIECE_BISHOP;
-      r = rand() % 4;
+      r = randomModulo(4);
       b->nPieces[B1 - 2 * r] = PIECE_BISHOP;
-      r = rand() % 6;
+      r = randomModulo(6);
       for (int s = A1, c = 0; s >= H1; s--)
       {
          if (!b->nPieces[s])
@@ -459,7 +468,7 @@ void CreateStartingPosition(TBoard* b, const int nVariant)
             c++;
          }
       }
-      r = rand() % 5;
+      r = randomModulo(5);
       for (int s = A1, c = 0; s >= H1; s--)
       {
          if (!b->nPieces[s])
@@ -472,7 +481,7 @@ void CreateStartingPosition(TBoard* b, const int nVariant)
             c++;
          }
       }
-      r = rand() % 4;
+      r = randomModulo(4);
       for (int s = A1, c = 0; s >= H1; s--)
       {
          if (!b->nPieces[s])

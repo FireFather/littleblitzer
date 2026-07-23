@@ -88,5 +88,5 @@ public:
    afx_msg void OnBnClickedChkFullPGN();
    CButton m_wndDumpIllegalMoves;
    CButton m_wndFullPGN;
-   static char ReadLine(FILE* f, char* s);
+   static int ReadLine(FILE* f, char* s);
 };

@@ -16,6 +16,43 @@
 #else
 #endif
 
+namespace
+{
+std::mt19937& RandomGenerator()
+{
+   thread_local std::mt19937 generator(std::random_device{}());
+   return generator;
+}
+
+unsigned long long MixOpeningIndex(unsigned long long value)
+{
+   value += 0x9e3779b97f4a7c15ULL;
+   value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
+   value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
+   return value ^ (value >> 31);
+}
+
+int PairedOpeningIndex(const unsigned long long pairing, const int positionCount,
+   const bool randomize, const unsigned long long seed)
+{
+   if (positionCount <= 1) return 0;
+   const unsigned long long value = randomize ? MixOpeningIndex(pairing ^ seed) : pairing;
+   return static_cast<int>(value % static_cast<unsigned long long>(positionCount));
+}
+
+unsigned long long RoundRobinPairing(const long round, const int engineCount, const int white, const int black)
+{
+   const unsigned long long gamesPerCycle = static_cast<unsigned long long>(engineCount) * (engineCount - 1);
+   const unsigned long long pairsPerCycle = gamesPerCycle / 2;
+   const unsigned long long cycle = static_cast<unsigned long long>(round) / gamesPerCycle;
+   const int first = MIN(white, black);
+   const int second = MAX(white, black);
+   const unsigned long long pairInCycle =
+      static_cast<unsigned long long>(first) * (2ULL * engineCount - first - 1) / 2 + second - first - 1;
+   return cycle * pairsPerCycle + pairInCycle;
+}
+}
+
 CTournament::CTournament() : m_sStartPositions(nullptr), m_nThreadID(0)
 {
    m_nType = 1;
@@ -34,6 +71,7 @@ CTournament::CTournament() : m_sStartPositions(nullptr), m_nThreadID(0)
    m_nAdjMateMoves = 12;
    m_nAdjDrawMoves = 150;
    m_nRandomize = 0;
+   m_nOpeningSeed = 0;
 
    m_pWnd = nullptr;
 
@@ -48,8 +86,6 @@ void CTournament::Start()
    m_bRunning = true;
    if (m_nNumEngines == 0) return;
 
-   srand(clock());
-
    long nBase[2], nInc[2];
    double fTimeLeft[2];
    int nSTM = WHITE;
@@ -60,7 +96,7 @@ void CTournament::Start()
 
    long nStartTime = clock();
 
-   TResult tResult;
+   TResult tResult{};
    tResult.dTotalTime[WHITE] = tResult.dTotalTime[BLACK] = 0.0;
    tResult.dTotalSearches[WHITE] = tResult.dTotalSearches[BLACK] = 0.0;
    tResult.nTotalDepth[WHITE] = tResult.nTotalDepth[BLACK] = 0;
@@ -68,9 +104,10 @@ void CTournament::Start()
    tResult.nTotalNPS[WHITE] = tResult.nTotalNPS[BLACK] = 0;
    tResult.nTotalNPSCount[WHITE] = tResult.nTotalNPSCount[BLACK] = 0;
 
+   const long scoreHistoryLength = MAX(1, m_nAdjMateMoves);
    long* nPrevScores[2];
-   nPrevScores[WHITE] = new long[m_nAdjMateMoves];
-   nPrevScores[BLACK] = new long[m_nAdjMateMoves];
+   nPrevScores[WHITE] = new long[scoreHistoryLength]{};
+   nPrevScores[BLACK] = new long[scoreHistoryLength]{};
    long nPrevScoresHead[2] = { 0, 0 };
 
    TBoard b;
@@ -87,9 +124,9 @@ void CTournament::Start()
 
       if (m_nVariant == VARIANT_STD)
       {
-         int idx;
-         if (m_nRandomize) idx = rand() % m_nNumStartPositions;
-         else idx = m_nRound / (2 * (m_nNumEngines - 1)) % m_nNumStartPositions;
+         const unsigned long long pairing = static_cast<unsigned long long>(m_nRound) /
+            (2ULL * (m_nNumEngines - 1));
+         const int idx = PairedOpeningIndex(pairing, m_nNumStartPositions, m_nRandomize != 0, m_nOpeningSeed);
          LoadFEN(&b, m_sStartPositions[idx]);
       }
       else
@@ -105,9 +142,8 @@ void CTournament::Start()
 
       if (m_nVariant == VARIANT_STD)
       {
-         int idx;
-         if (m_nRandomize) idx = rand() % m_nNumStartPositions;
-         else idx = m_nRound % m_nNumStartPositions;
+         const unsigned long long pairing = RoundRobinPairing(m_nRound, m_nNumEngines, nWhite, nBlack);
+         const int idx = PairedOpeningIndex(pairing, m_nNumStartPositions, m_nRandomize != 0, m_nOpeningSeed);
          LoadFEN(&b, m_sStartPositions[idx]);
       }
       else
@@ -127,12 +163,35 @@ void CTournament::Start()
    m_CurrEngines[WHITE].m_bPonder = m_bPonder;
    m_CurrEngines[WHITE].m_bOwnBook = m_bOwnBook;
    m_CurrEngines[WHITE].m_nVariant = m_nVariant;
-   m_CurrEngines[WHITE].Init();
+   if (!m_CurrEngines[WHITE].Init())
+   {
+      tResult.nResult = WHITE_ILLEGAL;
+      tResult.sSAN = new char[1];
+      tResult.sSAN[0] = 0;
+      m_bRunning = false;
+      delete[] nPrevScores[WHITE];
+      delete[] nPrevScores[BLACK];
+      if (m_pWnd && m_pWnd->m_hWnd)
+         m_pWnd->SendMessage(GAME_DONE, reinterpret_cast<WPARAM>(&tResult), m_nThreadID);
+      return;
+   }
    m_CurrEngines[BLACK].m_nHash = m_nHash;
    m_CurrEngines[BLACK].m_bPonder = m_bPonder;
    m_CurrEngines[BLACK].m_bOwnBook = m_bOwnBook;
    m_CurrEngines[BLACK].m_nVariant = m_nVariant;
-   m_CurrEngines[BLACK].Init();
+   if (!m_CurrEngines[BLACK].Init())
+   {
+      m_CurrEngines[WHITE].Quit();
+      tResult.nResult = BLACK_ILLEGAL;
+      tResult.sSAN = new char[1];
+      tResult.sSAN[0] = 0;
+      m_bRunning = false;
+      delete[] nPrevScores[WHITE];
+      delete[] nPrevScores[BLACK];
+      if (m_pWnd && m_pWnd->m_hWnd)
+         m_pWnd->SendMessage(GAME_DONE, reinterpret_cast<WPARAM>(&tResult), m_nThreadID);
+      return;
+   }
 
    m_CurrEngines[WHITE].NewGame();
    m_CurrEngines[BLACK].NewGame();
@@ -155,11 +214,7 @@ void CTournament::Start()
    g_nGameHalfMoveNum[m_nThreadID] = 0;
    nSTM = b.nSideToMove;
 
-   char* sGameMoves;
-   int nGameMovesLen = 0;
-   int nGameMovesAlloc = 1024;
-   sGameMoves = static_cast<char*>(malloc(sizeof(char) * nGameMovesAlloc));
-   sGameMoves[0] = 0;
+   CStringA sGameMoves;
    m_nWastedTime += clock() - nStartTime;
 
    while (true)
@@ -197,7 +252,7 @@ void CTournament::Start()
 
       Log("Took %.1lfms, Left[%c] = %.1lfms", t.GetMS(), nSTM == WHITE ? 'W' : 'B', fTimeLeft[nSTM]);
 
-      if (fTimeLeft[nSTM] <= 0)
+      if (sLine.IsEmpty() || fTimeLeft[nSTM] <= 0)
       {
          Log("RESULT: TIMEOUT");
          tResult.nResult = nSTM == WHITE ? WHITE_TIMEOUT : BLACK_TIMEOUT;
@@ -221,9 +276,13 @@ void CTournament::Start()
          }
       }
 
-      if (!Move2Coord(&m, &b, sMove.GetBuffer(), m_nVariant))
+      if (sWords.GetCount() < 2 || !Move2Coord(&m, &b, sMove.GetBuffer(), m_nVariant))
       {
-         ASSERT(false);
+         Log("RESULT: MALFORMED OR MISSING BESTMOVE");
+         tResult.nResult = nSTM == WHITE ? WHITE_ILLEGAL : BLACK_ILLEGAL;
+         if (g_bDumpIllegalMoves)
+            DumpIllegalMove(&b, sStartingPositionFEN, sMoveList, &m_CurrEngines[nSTM]);
+         break;
       }
       if (!IsValidMoveQuick(m, &b, m_nVariant))
       {
@@ -237,35 +296,25 @@ void CTournament::Start()
       if (g_bFullPGN)
       {
          char* sSAN = GetNotation(&b, m);
-         if (nGameMovesLen + strlen(sSAN) + 7 >= nGameMovesAlloc)
-         {
-            nGameMovesAlloc *= 2;
-            sGameMoves = static_cast<char*>(realloc(sGameMoves, sizeof(char) * nGameMovesAlloc));
-         }
-         sGameMoves[nGameMovesLen++] = ' ';
+         sGameMoves.AppendChar(' ');
          if (nSTM == WHITE)
          {
-            char sMoveNum[10];
-            sprintf(sMoveNum, "%d. ", nMoveNum);
-            strcpy(sGameMoves + nGameMovesLen, sMoveNum);
-            nGameMovesLen += strlen(sMoveNum);
-            strcpy(sGameMoves + nGameMovesLen, sSAN);
-            nGameMovesLen += strlen(sSAN);
+            char sMoveNum[32];
+            sprintf_s(sMoveNum, "%d. ", nMoveNum);
+            sGameMoves.Append(sMoveNum);
+            sGameMoves.Append(sSAN);
          }
          else
          {
-            if (nGameMovesLen == 1)
+            if (sGameMoves.GetLength() == 1)
             {
-               char sMoveNum[10];
-               sprintf(sMoveNum, "%d.. ", nMoveNum);
-               strcpy(sGameMoves + nGameMovesLen, sMoveNum);
-               nGameMovesLen += strlen(sMoveNum);
+               char sMoveNum[32];
+               sprintf_s(sMoveNum, "%d.. ", nMoveNum);
+               sGameMoves.Append(sMoveNum);
             }
-            strcpy(sGameMoves + nGameMovesLen, sSAN);
-            nGameMovesLen += strlen(sSAN);
+            sGameMoves.Append(sSAN);
          }
-         sGameMoves[nGameMovesLen] = 0;
-         delete sSAN;
+         delete[] sSAN;
       }
 
       if (g_nGameHalfMoveNum[m_nThreadID] >= m_nAdjDrawMoves * 2)
@@ -325,13 +374,7 @@ void CTournament::Start()
          IsSquareAttackedBy(&b, GetBit(b.bbPieces[WHITE][PIECE_KING - 1]), BLACK))
          || (b.nSideToMove == BLACK && IsSquareAttackedBy(&b, GetBit(b.bbPieces[BLACK][PIECE_KING - 1]), WHITE)))
       {
-         if (nGameMovesLen + 1 >= nGameMovesAlloc)
-         {
-            nGameMovesAlloc *= 2;
-            sGameMoves = static_cast<char*>(realloc(sGameMoves, sizeof(char) * nGameMovesAlloc));
-         }
-         sGameMoves[nGameMovesLen++] = '+';
-         sGameMoves[nGameMovesLen] = 0;
+         sGameMoves.AppendChar('+');
       }
 
       if (IsInsufficientMaterial(&b))
@@ -340,7 +383,7 @@ void CTournament::Start()
          tResult.nResult = INSUF_MAT;
          break;
       }
-      if (b.nFiftyMoveCount > 100)
+      if (b.nFiftyMoveCount >= 100)
       {
          Log("RESULT: DRAW BY FIFTY MOVES");
          tResult.nResult = FIFTY_MOVE;
@@ -371,13 +414,14 @@ void CTournament::Start()
 
    nStartTime = clock();
 
-   tResult.sSAN = sGameMoves;
+   tResult.sSAN = new char[sGameMoves.GetLength() + 1];
+   strcpy_s(tResult.sSAN, sGameMoves.GetLength() + 1, sGameMoves);
 
    m_CurrEngines[WHITE].Quit();
    m_CurrEngines[BLACK].Quit();
 
-   delete nPrevScores[WHITE];
-   delete nPrevScores[BLACK];
+   delete[] nPrevScores[WHITE];
+   delete[] nPrevScores[BLACK];
 
    m_nWastedTime += clock() - nStartTime;
 
@@ -390,9 +434,10 @@ void CTournament::Start()
 void CTournament::DumpIllegalMove(const TBoard* b, char* sStartingPosition, CString sMoveList, CEngine* e)
 {
    char name[100];
-   srand(clock());
-   sprintf(name, "illegal_%s_%u", e->m_sName, rand());
+   const unsigned int suffix = std::uniform_int_distribution<unsigned int>()(RandomGenerator());
+   _snprintf_s(name, sizeof(name), _TRUNCATE, "illegal_%s_%u", e->m_sName ? e->m_sName : "engine", suffix);
    FILE* fout = fopen(name, "wt");
+   if (!fout) return;
    char fen[100];
    Board2FEN(b, fen);
    PrintBoard(b, fout);
