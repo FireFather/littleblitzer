@@ -7,11 +7,23 @@
 #include "Common.h"
 #include "resource.h"
 
+struct TBatchOptions
+{
+   bool enabled = false;
+   bool overwrite = false;
+   CString enginesPath;
+   CString tournamentPath;
+   CString resultsPath;
+   CString statusPath;
+   CString error;
+};
+
 class CLittleBlitzerDlg final : public CDialog
 {
 public:
-   explicit CLittleBlitzerDlg(CWnd* pParent = nullptr);
+   explicit CLittleBlitzerDlg(const TBatchOptions& batchOptions = {}, CWnd* pParent = nullptr);
    ~CLittleBlitzerDlg() override;
+   int GetBatchExitCode() const { return m_nBatchExitCode; }
 
    enum { IDD = IDD_LITTLEBLITZER_DIALOG };
 
@@ -56,7 +68,12 @@ public:
    CEdit m_wndResults;
 
    bool InitPGN();
-   void LoadEngineSettings();
+   bool LoadEngineSettings(bool interactive = true);
+   bool LoadTournamentSettings(bool interactive = true);
+   bool StartTournament();
+   void WriteBatchStatus(const char* format, ...) const;
+   LRESULT OnBatchStart(WPARAM wParam, LPARAM lParam);
+   void FinishBatchWithError(int exitCode, const CString& message);
    static UINT RunTournament(void* pParam);
    LRESULT OnGameDone(WPARAM wParam, LPARAM lParam);
    void UpdateResults();
@@ -89,4 +106,9 @@ public:
    CButton m_wndDumpIllegalMoves;
    CButton m_wndFullPGN;
    static int ReadLine(FILE* f, char* s);
+
+private:
+   TBatchOptions m_batchOptions;
+   int m_nBatchExitCode;
+   long m_nBatchIllegalGames;
 };

@@ -6,6 +6,8 @@
 #include "Board.h"
 #include "Move.h"
 
+#include <cstdarg>
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4244)          
 #pragma warning(disable : 4267)           
@@ -42,8 +44,9 @@ void SetDefaultStartPosition(CTournament& tournament)
 }
 }
 
-CLittleBlitzerDlg::CLittleBlitzerDlg(CWnd* pParent)
-   : CDialog(IDD, pParent), m_sStartPositionFile{}, m_bPaused(false)
+CLittleBlitzerDlg::CLittleBlitzerDlg(const TBatchOptions& batchOptions, CWnd* pParent)
+   : CDialog(IDD, pParent), m_sStartPositionFile{}, m_bPaused(false), m_batchOptions(batchOptions),
+     m_nBatchExitCode(0), m_nBatchIllegalGames(0)
 {
    m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
@@ -127,6 +130,7 @@ BEGIN_MESSAGE_MAP(CLittleBlitzerDlg, CDialog)
    ON_BN_CLICKED(IDC_START, &CLittleBlitzerDlg::OnBnClickedStart)
 
    ON_MESSAGE(GAME_DONE, &CLittleBlitzerDlg::OnGameDone)
+   ON_MESSAGE(BATCH_START, &CLittleBlitzerDlg::OnBatchStart)
    ON_BN_CLICKED(IDC_PAUSE, &CLittleBlitzerDlg::OnBnClickedPause)
    ON_BN_CLICKED(IDC_OPEN_ENGINES, &CLittleBlitzerDlg::OnBnClickedOpenEngines)
    ON_BN_CLICKED(IDC_LOAD_ENGINES, &CLittleBlitzerDlg::OnBnClickedLoadEngines)
@@ -173,6 +177,12 @@ BOOL CLittleBlitzerDlg::OnInitDialog()
 
    InitialiseArrays();
 
+   if (m_batchOptions.enabled)
+   {
+      ShowWindow(SW_HIDE);
+      PostMessage(BATCH_START);
+   }
+
    return TRUE;
 }
 
@@ -205,6 +215,11 @@ HCURSOR CLittleBlitzerDlg::OnQueryDragIcon()
 }
 
 void CLittleBlitzerDlg::OnBnClickedLoadTournament()
+{
+   LoadTournamentSettings(true);
+}
+
+bool CLittleBlitzerDlg::LoadTournamentSettings(const bool interactive)
 {
    CString sPathName;
    m_wndTournFile.GetWindowText(sPathName);
@@ -278,7 +293,36 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    }
    else
    {
-      MessageBox(_T("Tournament file not found, will be created using defaults"), _T("Warning"));
+      if (interactive)
+         MessageBox(_T("Tournament file not found, will be created using defaults"), _T("Warning"));
+      return false;
+   }
+
+   if (!interactive)
+   {
+      if (m_nStartPositionType == 2)
+      {
+         if (GetFileAttributes(m_sStartPositionFile) == INVALID_FILE_ATTRIBUTES)
+            return false;
+         LoadEPDPositions(m_sStartPositionFile);
+      }
+      else if (m_nStartPositionType == 3)
+      {
+         if (GetFileAttributes(m_sStartPositionFile) == INVALID_FILE_ATTRIBUTES)
+            return false;
+         LoadPGNPositions(m_sStartPositionFile);
+      }
+      else if (m_nStartPositionType == 0)
+      {
+         SetDefaultStartPosition(m_Tournaments[0]);
+      }
+
+      for (int i = 1; i < MAX_THREADS; i++)
+         m_Tournaments[i] = m_Tournaments[0];
+
+      UpdateNumTourneys();
+      UpdateResults();
+      return m_nNumGames > 0 && m_nNumTournaments > 0 && m_Tournaments[0].m_nNumStartPositions > 0;
    }
 
    CTournSettings dlg;
@@ -310,7 +354,7 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    }
    dlg.m_nRandomize = m_Tournaments[0].m_nRandomize;
 
-   if (const INT_PTR res = dlg.DoModal(); res != IDOK) return;
+   if (const INT_PTR res = dlg.DoModal(); res != IDOK) return false;
 
    SetCursor(AfxGetApp()->LoadStandardCursor(IDC_WAIT));
 
@@ -369,7 +413,7 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    if (!f)
    {
       MessageBox(_T("File not found!"), _T("Error"));
-      return;
+      return false;
    }
 
    fprintf(f, "Type: %d\n", m_Tournaments[0].m_nType);
@@ -399,6 +443,7 @@ void CLittleBlitzerDlg::OnBnClickedLoadTournament()
    UpdateResults();
 
    SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
+   return true;
 }
 
 void CLittleBlitzerDlg::LoadEPDPositions(const char* sPath)
@@ -521,7 +566,7 @@ void CLittleBlitzerDlg::LoadPGNPositions(const char* sPath)
       SetDefaultStartPosition(m_Tournaments[0]);
 }
 
-void CLittleBlitzerDlg::LoadEngineSettings()
+bool CLittleBlitzerDlg::LoadEngineSettings(const bool interactive)
 {
    CString sConfigPath;
    m_wndEngineFile.GetWindowText(sConfigPath);
@@ -530,8 +575,9 @@ void CLittleBlitzerDlg::LoadEngineSettings()
    if (!f)
    {
       m_nNumEngines = 0;
-      MessageBox(_T("File not found!"), _T("Error"));
-      return;
+      if (interactive)
+         MessageBox(_T("File not found!"), _T("Error"));
+      return false;
    }
 
    SetCursor(AfxGetApp()->LoadStandardCursor(IDC_WAIT));
@@ -555,7 +601,8 @@ void CLittleBlitzerDlg::LoadEngineSettings()
       {
          if (m_nNumEngines >= MAX_ENGINES)
          {
-            MessageBox(_T("Only the first 100 engines were loaded."), _T("Engine limit"), MB_OK | MB_ICONWARNING);
+            if (interactive)
+               MessageBox(_T("Only the first 100 engines were loaded."), _T("Engine limit"), MB_OK | MB_ICONWARNING);
             break;
          }
          CEngine e;
@@ -600,28 +647,39 @@ void CLittleBlitzerDlg::LoadEngineSettings()
       if (!m_Engines[i].Init())
       {
          m_nNumEngines = i;
-         MessageBox(_T("Engine loading stopped because an engine failed to initialize."), _T("Engine error"), MB_OK | MB_ICONERROR);
+         if (interactive)
+            MessageBox(_T("Engine loading stopped because an engine failed to initialize."), _T("Engine error"),
+               MB_OK | MB_ICONERROR);
          break;
       }
       m_Engines[i].Quit();
    }
 
    SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW));
+   return m_nNumEngines >= 2;
 }
 
 void CLittleBlitzerDlg::OnBnClickedStart()
 {
+   StartTournament();
+}
+
+bool CLittleBlitzerDlg::StartTournament()
+{
    if (m_nNumEngines < 2)
    {
-      MessageBox(_T("Load at least two valid engines before starting."), _T("Cannot start"), MB_OK | MB_ICONWARNING);
-      return;
+      if (!m_batchOptions.enabled)
+         MessageBox(_T("Load at least two valid engines before starting."), _T("Cannot start"), MB_OK | MB_ICONWARNING);
+      return false;
    }
    if (m_nNumGames <= 0 || m_nNumTournaments <= 0 || m_Tournaments[0].m_nNumStartPositions <= 0)
    {
-      MessageBox(_T("Tournament settings must specify at least one game, worker, and starting position."), _T("Cannot start"), MB_OK | MB_ICONWARNING);
-      return;
+      if (!m_batchOptions.enabled)
+         MessageBox(_T("Tournament settings must specify at least one game, worker, and starting position."), _T("Cannot start"),
+            MB_OK | MB_ICONWARNING);
+      return false;
    }
-   if (!InitPGN()) return;
+   if (!InitPGN()) return false;
 
    m_nGameNum = 0;
    m_nNumGamesPlayed = 0;
@@ -695,6 +753,7 @@ void CLittleBlitzerDlg::OnBnClickedStart()
 
    UpdateResults();
    UpdateNumTourneys();
+   return true;
 }
 
 int CLittleBlitzerDlg::GetNextRound()
@@ -823,6 +882,8 @@ LRESULT CLittleBlitzerDlg::OnGameDone(const WPARAM wParam, const LPARAM lParam)
 
    UpdateResults();
    UpdatePGN(tResult);
+   if (tResult->nResult == WHITE_ILLEGAL || tResult->nResult == BLACK_ILLEGAL)
+      m_nBatchIllegalGames++;
 
    m_nNumActiveTournaments--;
    if (const int id = static_cast<int>(lParam); id < m_nNumTournaments && m_nNumGamesPlayed + m_nNumActiveTournaments < m_nNumGames)
@@ -834,6 +895,10 @@ LRESULT CLittleBlitzerDlg::OnGameDone(const WPARAM wParam, const LPARAM lParam)
    }
    UpdateNumTourneys();
 
+   if (m_batchOptions.enabled)
+      WriteBatchStatus("PROGRESS completed=%ld total=%ld active=%d illegal=%ld", m_nNumGamesPlayed, m_nNumGames,
+         m_nNumActiveTournaments, m_nBatchIllegalGames);
+
    if (m_nNumActiveTournaments == 0 && m_nNumGamesPlayed >= m_nNumGames)
    {
       m_wndStart.EnableWindow(true);
@@ -841,6 +906,13 @@ LRESULT CLittleBlitzerDlg::OnGameDone(const WPARAM wParam, const LPARAM lParam)
       m_wndLoadTournament.EnableWindow(true);
       m_bPaused = false;
       m_wndPause.SetWindowText("Pause\n(zero threads)");
+      if (m_batchOptions.enabled)
+      {
+         m_nBatchExitCode = m_nBatchIllegalGames == 0 ? 0 : 3;
+         WriteBatchStatus("COMPLETE completed=%ld total=%ld illegal=%ld exit=%d", m_nNumGamesPlayed, m_nNumGames,
+            m_nBatchIllegalGames, m_nBatchExitCode);
+         EndDialog(IDOK);
+      }
    }
 
    return 0;
@@ -853,6 +925,19 @@ bool CLittleBlitzerDlg::InitPGN()
    if (FILE* fpgn; fpgn = fopen(m_sResultsPath.GetBuffer(), "rt"))
    {
       fclose(fpgn);
+      if (m_batchOptions.enabled)
+      {
+         if (!m_batchOptions.overwrite)
+         {
+            WriteBatchStatus("ERROR results file already exists (use --overwrite): %s",
+               static_cast<const char*>(m_sResultsPath));
+            return false;
+         }
+         if (!(fpgn = fopen(m_sResultsPath.GetBuffer(), "wt")))
+            return false;
+         fclose(fpgn);
+         return true;
+      }
       if (const int r = MessageBox(
          "The results file already exists, do you wish to append to the current file?\nYes = Append\nNo = Overwrite",
          "WARNING", MB_YESNOCANCEL); r == 6)
@@ -1084,8 +1169,85 @@ void CLittleBlitzerDlg::OnBnClickedOpenEngines()
 
 void CLittleBlitzerDlg::OnBnClickedLoadEngines()
 {
-   LoadEngineSettings();
+   LoadEngineSettings(true);
    UpdateResults();
+}
+
+void CLittleBlitzerDlg::WriteBatchStatus(const char* format, ...) const
+{
+   if (!m_batchOptions.enabled || m_batchOptions.statusPath.IsEmpty()) return;
+
+   FILE* file = fopen(m_batchOptions.statusPath, "at");
+   if (!file) return;
+
+   SYSTEMTIME now;
+   GetLocalTime(&now);
+   fprintf(file, "%04u-%02u-%02uT%02u:%02u:%02u ", now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute,
+      now.wSecond);
+
+   va_list arguments;
+   va_start(arguments, format);
+   vfprintf(file, format, arguments);
+   va_end(arguments);
+   fputc('\n', file);
+   fclose(file);
+}
+
+void CLittleBlitzerDlg::FinishBatchWithError(const int exitCode, const CString& message)
+{
+   m_nBatchExitCode = exitCode;
+   WriteBatchStatus("ERROR exit=%d message=%s", exitCode, static_cast<const char*>(message));
+   EndDialog(IDCANCEL);
+}
+
+LRESULT CLittleBlitzerDlg::OnBatchStart(WPARAM, LPARAM)
+{
+   if (!m_batchOptions.error.IsEmpty())
+   {
+      FinishBatchWithError(2, m_batchOptions.error);
+      return 0;
+   }
+
+   m_wndEngineFile.SetWindowText(m_batchOptions.enginesPath);
+   m_wndTournFile.SetWindowText(m_batchOptions.tournamentPath);
+   m_wndSavePGN.SetWindowText(m_batchOptions.resultsPath);
+
+   CString workingDirectory = m_batchOptions.tournamentPath;
+   const int slash = MAX(workingDirectory.ReverseFind('\\'), workingDirectory.ReverseFind('/'));
+   if (slash >= 0)
+   {
+      workingDirectory = workingDirectory.Left(slash);
+      if (!SetCurrentDirectory(workingDirectory))
+      {
+         FinishBatchWithError(2, "Unable to use the tournament settings directory");
+         return 0;
+      }
+   }
+
+   if (m_batchOptions.overwrite && !m_batchOptions.statusPath.IsEmpty())
+      DeleteFile(m_batchOptions.statusPath);
+   WriteBatchStatus("START engines=%s settings=%s results=%s",
+      static_cast<const char*>(m_batchOptions.enginesPath), static_cast<const char*>(m_batchOptions.tournamentPath),
+      static_cast<const char*>(m_batchOptions.resultsPath));
+
+   if (!LoadTournamentSettings(false))
+   {
+      FinishBatchWithError(2, "Unable to load valid tournament settings or starting positions");
+      return 0;
+   }
+   if (!LoadEngineSettings(false))
+   {
+      FinishBatchWithError(2, "Unable to load at least two valid engines");
+      return 0;
+   }
+   if (!StartTournament())
+   {
+      FinishBatchWithError(2, "Unable to start tournament");
+      return 0;
+   }
+
+   WriteBatchStatus("RUNNING games=%ld parallel=%d engines=%ld", m_nNumGames, m_nNumTournaments, m_nNumEngines);
+   return 0;
 }
 
 void CLittleBlitzerDlg::OnBnClickedOpenTourn()

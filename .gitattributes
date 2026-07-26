@@ -1,0 +1,23 @@
+# Keep portable source, documentation, configuration, and scripts as LF.
+* text=auto eol=lf
+
+# Keep Windows-native command and Visual Studio project files as CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+
+# Never apply text conversion to compiled files and artwork.
+*.exe binary
+*.dll binary
+*.lib binary
+*.obj binary
+*.pdb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.cur binary

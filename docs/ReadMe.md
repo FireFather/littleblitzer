@@ -24,7 +24,17 @@ While running, LittleBlitzer outputs a ton of useful info:
 - averages    : (tpm) time per move (d) depth (nps) nodes per second
   
 ---------
-### LittleBlitzer 2.77 is now available
+### LittleBlitzer 2.90 is now available
+27/07/2026
+- Optional unattended batch mode with explicit engine, tournament, results, and status paths
+- Sequential batch-queue supervisor with preflight and completed-PGN validation
+- See [Command-line operation](CommandLine.md) for syntax, exit codes, safety behavior, and queue examples
+
+### LittleBlitzer 2.80
+23/07/2026
+- Correctly shares each selected EPD/PGN opening between colour-reversed game pairs in both gauntlet and round-robin tournaments
+
+### LittleBlitzer 2.77
 03/01/2024
 - Live win% for each engine calculated and displayed
 

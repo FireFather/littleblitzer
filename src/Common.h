@@ -14,6 +14,7 @@ using BitBoard = uint64_t;
 
 #define GAME_DONE			(WM_APP + 100)
 #define TOURN_DONE			(WM_APP + 200)
+#define BATCH_START			(WM_APP + 300)
 
 #define MAX_THREADS			128
 

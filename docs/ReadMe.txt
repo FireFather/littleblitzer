@@ -89,6 +89,24 @@ Starting Positions:
    x
 
 
+## Unattended batch mode
+LittleBlitzer 2.90 can run an existing Engines.lbe and Tournament.lbt without GUI interaction:
+
+   LittleBlitzer.exe --batch --engines "C:\path\Engines.lbe" --settings "C:\path\Tournament.lbt" --results "C:\path\Results.pgn" --status "C:\path\status.log" --overwrite
+
+The --engines, --settings, and --results arguments are required. --status is optional and defaults to
+Results.pgn.status.log. If the results file already exists, batch mode fails unless --overwrite is supplied.
+The process exits with code 0 after the exact configured number of games, 2 for setup/start failures, or 3 if
+one or more games ended because an engine produced an illegal move or failed to initialize during a game.
+Relative Position paths in Tournament.lbt are resolved from the directory containing Tournament.lbt.
+
+The included scripts\Run-LittleBlitzerBatchQueue.ps1 supervisor preflights and runs multiple batch-mode
+tournaments sequentially, then checks the exit code, exact PGN game count, completion status, illegal-move
+files, and PGN SHA-256. Use its -ValidateOnly switch to check a queue without starting any games.
+
+See CommandLine.md for complete syntax, exit codes, safety behavior, and queue examples.
+
+
 
 ## Notes
 - Enabling FRC via Variant=1 will automatically set each engine's UCI_Chess960 parameter to true.
@@ -118,6 +136,14 @@ For example:
 
 
 ## Version History
+- v2.90 27/7/2026
+  Added optional unattended batch mode with completion/error exit codes and a progress status log.
+  Added a sequential batch-queue supervisor with preflight and completed-PGN validation.
+
+- v2.80 23/7/2026
+  Corrected EPD/PGN opening selection so colour-reversed pairs share the same opening in gauntlet and
+  round-robin tournaments, including randomized selection.
+
 - v2.77 3/1/2024
   Live win% for each engine calculated and displayed
 

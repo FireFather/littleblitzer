@@ -6,7 +6,7 @@
 
 #include "LittleBlitzerDlg.h"
 
-#define VERSION	"2.80 x64"
+#define VERSION	"2.90 x64"
 
 class CLittleBlitzerApp final : public CWinAppEx
 {
@@ -14,8 +14,13 @@ public:
    CLittleBlitzerApp();
 
    BOOL InitInstance() override;
+   int ExitInstance() override;
 
    DECLARE_MESSAGE_MAP()
+
+private:
+   bool m_bBatchMode = false;
+   int m_nExitCode = 0;
 };
 
 extern CLittleBlitzerApp theApp;
