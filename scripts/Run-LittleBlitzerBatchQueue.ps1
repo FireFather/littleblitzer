@@ -200,6 +200,16 @@ try {
             throw "PGN validation failed for '$($test.Name)': expected $($test.Rounds) games, found $completedGames."
         }
 
+        $terminations = @(
+            Select-String -LiteralPath $test.Results -Pattern '^\[Termination "(normal|time forfeit|rules infraction|adjudication|abandoned|death|emergency|unterminated)"\]$'
+        )
+        if ($terminations.Count -ne $test.Rounds) {
+            throw "PGN Termination validation failed for '$($test.Name)': expected $($test.Rounds) tags, found $($terminations.Count)."
+        }
+        $timeForfeits = @(
+            $terminations | Where-Object { $_.Line -eq '[Termination "time forfeit"]' }
+        ).Count
+
         $completeStatus = Select-String -LiteralPath $test.Status -Pattern "^.* COMPLETE completed=$($test.Rounds) total=$($test.Rounds) illegal=0 exit=0$" |
             Select-Object -Last 1
         if ($null -eq $completeStatus) {
@@ -213,7 +223,7 @@ try {
         }
 
         $pgnHash = (Get-FileHash -LiteralPath $test.Results -Algorithm SHA256).Hash
-        Write-RunLog "TEST_COMPLETE name=$($test.Name) games=$completedGames pgn_sha256=$pgnHash"
+        Write-RunLog "TEST_COMPLETE name=$($test.Name) games=$completedGames time_forfeits=$timeForfeits pgn_sha256=$pgnHash"
     }
 
     Write-RunLog "QUEUE_COMPLETE tests=$($preparedTests.Count)"

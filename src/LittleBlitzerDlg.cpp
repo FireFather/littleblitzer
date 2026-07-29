@@ -966,58 +966,72 @@ bool CLittleBlitzerDlg::InitPGN()
 
 void CLittleBlitzerDlg::UpdatePGN(TResult* r)
 {
-   char sResult[20];
+   char sResult[20] = "*";
+   const char* sTermination = "unterminated";
    if (r->nResult == BLACK_MATES)
    {
       strcpy(sResult, "0-1");
+      sTermination = "normal";
    }
    else if (r->nResult == WHITE_MATES)
    {
       strcpy(sResult, "1-0");
+      sTermination = "normal";
    }
    else if (r->nResult == BLACK_TIMEOUT)
    {
       strcpy(sResult, "1-0");
+      sTermination = "time forfeit";
    }
    else if (r->nResult == WHITE_TIMEOUT)
    {
       strcpy(sResult, "0-1");
+      sTermination = "time forfeit";
    }
    else if (r->nResult == STALEMATE)
    {
       strcpy(sResult, "1/2-1/2");
+      sTermination = "normal";
    }
    else if (r->nResult == INSUF_MAT)
    {
       strcpy(sResult, "1/2-1/2");
+      sTermination = "normal";
    }
    else if (r->nResult == REPETITION)
    {
       strcpy(sResult, "1/2-1/2");
+      sTermination = "normal";
    }
    else if (r->nResult == FIFTY_MOVE)
    {
       strcpy(sResult, "1/2-1/2");
+      sTermination = "normal";
    }
    else if (r->nResult == WHITE_ILLEGAL)
    {
       strcpy(sResult, "0-1");
+      sTermination = "rules infraction";
    }
    else if (r->nResult == BLACK_ILLEGAL)
    {
       strcpy(sResult, "1-0");
+      sTermination = "rules infraction";
    }
    else if (r->nResult == ADJ_DRAW)
    {
       strcpy(sResult, "1/2-1/2");
+      sTermination = "adjudication";
    }
    else if (r->nResult == ADJ_WHITE_MATES)
    {
       strcpy(sResult, "1-0");
+      sTermination = "adjudication";
    }
    else if (r->nResult == ADJ_BLACK_MATES)
    {
       strcpy(sResult, "0-1");
+      sTermination = "adjudication";
    }
    FILE* fpgn;
 
@@ -1030,6 +1044,7 @@ void CLittleBlitzerDlg::UpdatePGN(TResult* r)
    fprintf(fpgn, "[White \"%s\"]\n", m_Engines[r->nWhite].m_sName);
    fprintf(fpgn, "[Black \"%s\"]\n", m_Engines[r->nBlack].m_sName);
    fprintf(fpgn, "[Result \"%s\"]\n", sResult);
+   fprintf(fpgn, "[Termination \"%s\"]\n", sTermination);
 
    if (g_bFullPGN)
    {

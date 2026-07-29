@@ -1,9 +1,13 @@
-# LittleBlitzer 2.90 command-line operation
+# LittleBlitzer 2.91 command-line operation
 
-LittleBlitzer 2.90 adds optional unattended tournament operation. A batch run
+LittleBlitzer 2.90 added optional unattended tournament operation. A batch run
 loads the existing `Engines.lbe` and `Tournament.lbt` formats, starts without
 button clicks, keeps the main window hidden, records progress, and exits when
 the configured number of games has completed.
+
+LittleBlitzer 2.91 adds a standard PGN `Termination` tag to every game. The
+batch-queue supervisor validates those tags and reports the number of time
+forfeits in its completion record.
 
 Launching `LittleBlitzer.exe` without `--batch` retains the normal graphical
 interface.
@@ -192,6 +196,7 @@ After each tournament, it verifies:
 
 - a zero LittleBlitzer exit code;
 - exactly the configured number of completed PGN games;
+- exactly one valid `Termination` tag per completed game;
 - a matching successful `COMPLETE` status record;
 - the absence of `illegal*` files in the results directory; and
 - the SHA-256 hash of the completed PGN.

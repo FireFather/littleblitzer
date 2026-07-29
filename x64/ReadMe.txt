@@ -136,6 +136,10 @@ For example:
 
 
 ## Version History
+- v2.91 29/7/2026
+  Added standard PGN Termination tags for normal finishes, time forfeits, rules infractions, and adjudications.
+  Batch-queue validation now verifies every Termination tag and reports time-forfeit counts.
+
 - v2.90 27/7/2026
   Added optional unattended batch mode with completion/error exit codes and a progress status log.
   Added a sequential batch-queue supervisor with preflight and completed-PGN validation.

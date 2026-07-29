@@ -104,8 +104,8 @@ END
 //
 
 VS_VERSION_INFO     VERSIONINFO
-  FILEVERSION       2,90,0,0
-  PRODUCTVERSION    2,90,0,0
+  FILEVERSION       2,91,0,0
+  PRODUCTVERSION    2,91,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -122,12 +122,12 @@ BEGIN
 		BEGIN
 			VALUE "CompanyName",     "Kimiensoftware"
 			VALUE "FileDescription", "UCI chess engine tournament manager"
-			VALUE "FileVersion",     "2.90.0.0"
+			VALUE "FileVersion",     "2.91.0.0"
 			VALUE "InternalName",    "LittleBlitzer.exe"
 			VALUE "LegalCopyright",  "Copyright Nathan Thom"
 			VALUE "OriginalFilename","LittleBlitzer.exe"
 			VALUE "ProductName",     "LittleBlitzer"
-			VALUE "ProductVersion",  "2.90.0.0"
+			VALUE "ProductVersion",  "2.91.0.0"
 		END
 	END
 	BLOCK "VarFileInfo"
@@ -194,4 +194,3 @@ LANGUAGE 9, 1
 #endif
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
