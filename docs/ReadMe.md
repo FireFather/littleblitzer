@@ -28,6 +28,9 @@ While running, LittleBlitzer outputs a ton of useful info:
 29/07/2026
 - Standard PGN `Termination` tags now identify normal finishes, time forfeits, rules infractions, and adjudications
 - Batch-queue validation now verifies every `Termination` tag and reports time-forfeit counts
+
+### LittleBlitzer 2.90
+27/07/2026
 - Optional unattended batch mode with explicit engine, tournament, results, and status paths
 - Sequential batch-queue supervisor with preflight and completed-PGN validation
 - See [Command-line operation](CommandLine.md) for syntax, exit codes, safety behavior, and queue examples
