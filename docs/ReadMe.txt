@@ -146,6 +146,11 @@ working directory.
 
 
 ## Version History
+- v3.01 30/7/2026
+  Corrected dark-mode text colors for Tournament Settings group-box captions and radio-button labels.
+  Retained dark styling for edits, checkboxes, push buttons, panels, and compatible window chrome.
+  Left the standard light appearance and all tournament behavior unchanged.
+
 - v3.00 30/7/2026
   Added a persistent Dark mode checkbox under Options.
   Applied dark styling to controls, panels, inputs, results, scrollbars, and compatible window chrome.

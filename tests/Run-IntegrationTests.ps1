@@ -29,7 +29,7 @@ $visualStudio = & $vswhere -latest -products * -requires Microsoft.VisualStudio.
 Assert-True (-not [string]::IsNullOrWhiteSpace($visualStudio)) 'A Visual Studio C++ installation was not found.'
 $developerCommand = Join-Path $visualStudio 'Common7\Tools\VsDevCmd.bat'
 
-$testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('LittleBlitzer-3.00-tests-' + [guid]::NewGuid().ToString('N'))
+$testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('LittleBlitzer-3.01-tests-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 $succeeded = $false
 

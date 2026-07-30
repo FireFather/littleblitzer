@@ -27,7 +27,25 @@ namespace
 {
 BOOL CALLBACK ApplyDarkModeToChild(const HWND child, const LPARAM enabled)
 {
-   SetWindowTheme(child, enabled ? L"DarkMode_Explorer" : nullptr, nullptr);
+   if (enabled)
+   {
+      wchar_t className[16] = {};
+      GetClassNameW(child, className, _countof(className));
+      const LONG_PTR buttonType = GetWindowLongPtr(child, GWL_STYLE) & BS_TYPEMASK;
+      const bool useDialogTextColors = wcscmp(className, L"Button") == 0
+         && (buttonType == BS_GROUPBOX || buttonType == BS_RADIOBUTTON
+            || buttonType == BS_AUTORADIOBUTTON);
+
+      // The dark Explorer theme paints group-box and radio-button labels black,
+      // bypassing the dialog's WM_CTLCOLOR text color. Let those controls use
+      // the dialog colors while retaining dark themed checkboxes and buttons.
+      SetWindowTheme(child, useDialogTextColors ? L"" : L"DarkMode_Explorer",
+         useDialogTextColors ? L"" : nullptr);
+   }
+   else
+   {
+      SetWindowTheme(child, nullptr, nullptr);
+   }
    SendMessage(child, WM_THEMECHANGED, 0, 0);
    return TRUE;
 }

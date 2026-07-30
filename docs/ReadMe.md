@@ -37,6 +37,12 @@ complete board dump and FEN, starting position, full move list, latest engine ou
 working directory.
 
 ---------
+### LittleBlitzer 3.01
+30/07/2026
+- Corrects dark-mode text colors for Tournament Settings group-box captions and radio-button labels
+- Retains dark styling for edits, checkboxes, push buttons, panels, and compatible window chrome
+- Leaves the standard light appearance and all tournament behavior unchanged
+
 ### LittleBlitzer 3.00
 30/07/2026
 - Adds a persistent Dark mode checkbox to Options
