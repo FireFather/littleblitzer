@@ -1,24 +1,28 @@
 
-LittleBlitzer is a Windows tournament manager program for UCI based chess engines. It was created to enable
-playing thousands of very fast games using multiple threads for chess engine testing purposes. It creates a
-PGN file designed to be used by Bayeselo or Elostat to give a final rating for each engine.
+LittleBlitzer is a Windows tournament manager for UCI chess engines. It was created to run thousands of
+very fast games concurrently for engine testing. It creates PGN output suitable for rating tools such as
+Ordo, BayesElo, and EloStat.
 
-![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
+![LittleBlitzer 2.93 interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.93.png)
 
 Download LittleBlitzer from http://www.kimiensoftware.com
 Contact me at nathanthom@gmail.com
 
 
 ## Instructions
-- 1. Create a Engines.lbe file with a list of UCI engines to use. Do not put spaces either side of the =.
+- 1. Create an Engines.lbe file with a list of UCI engines to use. Do not put spaces either side of the =.
    Blank lines are fine, UCI parameters should appear after the relevant Engine line, so in the following
    example "Time Buffer" is only set for t20090922.exe and "Hash=128" is only set for Hamsters.exe. You can 
-   use the special variable LB_Name to override the default engine name used in the results file.
+   LittleBlitzer uses the engine's UCI "id name" by default. Use the special variable LB_Name only when
+   an explicit display alias is needed, such as distinguishing two self-play builds with the same UCI name.
+   LB_ExpectedUCI may also be supplied to require an exact UCI "id name" value; a mismatch prevents
+   the engine from being loaded.
 
 		Engine=C:\Projects\LittleThought\Release\LittleThought 1.06.54.exe
 		NumThreads=2
 		TraceLevel=1
 		LB_Name=LT 1.06.54
+		LB_ExpectedUCI=LittleThought 1.06.54
 		
 		Engine=C:\Downloads\Engines\Twisted\twisted20090922\t20090922.exe
 		Time Buffer=100
@@ -29,15 +33,16 @@ Contact me at nathanthom@gmail.com
 		Hash=128
 
 
-- 2. Clck the Load Engines button
+- 2. Click the Load Engines button
 
-- 3. Click the Load Tournament Settings button. This will load settings from the specified Tournament.lbt file if it exists, otherwise uses defaults. Make whatever changes are required and OK to save.
+- 3. Click the Load settings button. This will load settings from the specified Tournament.lbt file if it exists, otherwise uses defaults. Make whatever changes are required and OK to save.
 
 Num Total Rounds:
-   Number of games to play (split across Num Parallel Tournaments). Note that because of the multithreaded nature of LittleBlitzer, the actual number may be slightly higher.
+   Total number of games to play, distributed across the configured concurrent games.
 
 Num Parallel Tournaments:
-   Number of tournaments to run in parallel. E.g. if using 4cores, use no more than 4 threads for optimal performance.
+   Number of games LittleBlitzer runs concurrently. For example, on a four-core system, start with no more
+   than four concurrent games. Engine UCI thread settings multiply the total CPU demand.
 
 Hash:
    Size of Hash tables for all engines (MB) (UCI parameter = Hash)
@@ -71,13 +76,17 @@ Starting Positions:
    EPD: Load starting positions from an EPD file. Positions are used sequentially and fairly - i.e. each engine plays both white and black against each opponent.
    PGN: Load starting positions from a PGN file. If it sees [FEN] tags it will load that position. If not,  it will play through all moves shown in the game and the resulting position will form the starting position.
    Randomize: Randomly selects from the loaded opening positions. Colour-reversed paired games use the same position so that each engine plays both White and Black from it.
+   OpeningSeed: Optional nonzero seed for reproducible randomized opening selection. Generated seeds are
+   recorded in the run manifest.
 
 
-- 4. Click the Start New button. If the results.pgn file specified already exists, you will be asked to append or overwrite.
+- 4. Click the Start button. If the results.pgn file specified already exists, you will be asked to append or overwrite.
+   LittleBlitzer also writes Results.pgn.manifest.json with exact engine identities, SHA-256 hashes,
+   settings, opening data, and the opening seed.
 
-- 5. Use the Pause/Resume/+/- buttons to control the number of threads while its running. Try to minimise how often you do this, as it can affect the total number of games played. Specifically, the first engine will tend to get more games each time additional threads are added.
+- 5. Use the Pause/Resume/+/- buttons to control the number of concurrent games while it is running. Try to minimise how often you do this, as it can affect the total number of games played. Specifically, the first engine will tend to get more games each time additional concurrent games are added.
 
-- 6. When done, set the threads to zero and wait for it to finish. Then run the Results.pgn file through Bayeselo, using commands something like:
+- 6. When done, set concurrent games to zero and wait for active games to finish. Then run the Results.pgn file through Bayeselo, using commands something like:
 
    readpgn results1.pgn
    readpgn results2.pgn
@@ -115,27 +124,44 @@ See CommandLine.md for complete syntax, exit codes, safety behavior, and queue e
 - For mate adjudication, both engines must agree on the score e.g. engine1 > 900 and engine2 < -900
 
 
-## Result Columns
-- After the engine names, there will be 5 groups of columns with data.
+## Live Results
+The match configuration and elapsed/remaining time appear in the fixed Match summary panel. The scrolling
+Live results pane contains the completed-game count followed by three aligned tables:
 
-For example:
+1. Results: points/games, score percentage, W-L-D, average move time in milliseconds (ms/move), depth, and NPS.
+2. Losses: adjudication, mate, timeout, illegal move, and engine crash/death.
+3. Draws: adjudication, repetition, insufficient material, 50-move rule, and stalemate.
 
- 1.  LittleThought v2.77 11989.0/23644 11023-10689-1932 50.71% (L: m=5083 t=198 i=0 a=5408) (D: r=1018 i=511 f=225 s=87 a=91) (tpm=112.4 d=10.2 nps=827951)
+The Copy report button copies the Match summary, time, and complete Live results report together as plain text.
 
-1. Score (points/games played)
-     e.g. score of 11989 over 23644 games
-2. Score Breakdown (wins-losses-draws)
-     e.g. 11023 wins, 10689 losses, 1932 draws
-3. Win% (wins + draws / 2) / number of games played
-4. Loss reasons (m = mated, t = timed out, i = illegal moves, a = adjudication)
-     e.g. 5083 mated, 198 timeouts, 0 illegal moves, 5408 adjudicated losses
-5. Draw reasons (r = repetition, i = insufficient material, f = 50 moves, s = stalemate, a = adjudication)
-     e.g. 1018 repetitions, 511 insufficient material, 225 50-moves, 87 stalemates, 91 adjudicated draws
-6. Engine stats (tpm = avg time per move, d = avg depth, nps = avg nps)
-     e.g. 112.4 ms/move, 10.2 ply, 827951 nps
+Engine names longer than the table column are abbreviated there and printed in full beneath the tables.
+
+
+## Illegal Move Reports
+Enable Write illegal moves to file under Options to create a uniquely named illegal_<engine>_<suffix> text
+report whenever an engine returns an illegal move. Each report includes the complete board dump and FEN,
+starting position, full move list, latest engine output, and a ready-to-paste UCI
+"position fen ... moves ..." command for reproducing the failure. Reports are written to the tournament's
+working directory.
 
 
 ## Version History
+- v2.93 30/7/2026
+  Refreshed the GUI with native Windows visual styles, Segoe UI controls, and a Consolas results view.
+  Organized Run control, Options, Match summary, and Live results into clear bordered panels.
+  Moved static match settings and time into the dedicated Match summary.
+  Added a wider, equal-column grid for Results, Losses, and Draws with clear adjudication counts.
+  Relabeled LittleBlitzer parallelism as concurrent games to distinguish it from engine threads.
+  Kept the main window at its designed width while retaining vertical resizing.
+  Added Copy report for the Match summary and complete Live results text.
+
+- v2.92 30/7/2026
+  Added exact engine identity and SHA-256 provenance manifests plus optional LB_ExpectedUCI validation.
+  Separated engine process/protocol failures from timeouts and illegal moves.
+  Added safer process containment, fail-closed output, reproducible opening seeds, stricter validation,
+  regression tests, and aligned GUI statistics.
+  Used each engine's UCI id name by default, with optional LB_Name aliases for self-play or custom labels.
+
 - v2.91 29/7/2026
   Added standard PGN Termination tags for normal finishes, time forfeits, rules infractions, and adjudications.
   Batch-queue validation now verifies every Termination tag and reports time-forfeit counts.

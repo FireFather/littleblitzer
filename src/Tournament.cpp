@@ -158,6 +158,10 @@ void CTournament::Start()
    m_CurrEngines[BLACK] = m_Engines[nBlack];
    tResult.nWhite = nWhite;
    tResult.nBlack = nBlack;
+   char sStartingPositionFEN[100];
+   Board2FEN(&b, sStartingPositionFEN);
+   if (g_bFullPGN)
+      strcpy_s(tResult.sFEN, sStartingPositionFEN);
 
    m_CurrEngines[WHITE].m_nHash = m_nHash;
    m_CurrEngines[WHITE].m_bPonder = m_bPonder;
@@ -165,7 +169,7 @@ void CTournament::Start()
    m_CurrEngines[WHITE].m_nVariant = m_nVariant;
    if (!m_CurrEngines[WHITE].Init())
    {
-      tResult.nResult = WHITE_ILLEGAL;
+      tResult.nResult = WHITE_ENGINE_FAILURE;
       tResult.sSAN = new char[1];
       tResult.sSAN[0] = 0;
       m_bRunning = false;
@@ -182,7 +186,7 @@ void CTournament::Start()
    if (!m_CurrEngines[BLACK].Init())
    {
       m_CurrEngines[WHITE].Quit();
-      tResult.nResult = BLACK_ILLEGAL;
+      tResult.nResult = BLACK_ENGINE_FAILURE;
       tResult.sSAN = new char[1];
       tResult.sSAN[0] = 0;
       m_bRunning = false;
@@ -205,13 +209,7 @@ void CTournament::Start()
    fTimeLeft[BLACK] = nBase[BLACK];
    nMoveNum = 1;
 
-   char sStartingPositionFEN[100];
-   Board2FEN(&b, sStartingPositionFEN);
-   if (g_bFullPGN)
-   {
-      strcpy(tResult.sFEN, sStartingPositionFEN);
-   }
-   g_nGameHalfMoveNum[m_nThreadID] = 0;
+   ResetRepetition(&b, m_nThreadID);
    nSTM = b.nSideToMove;
 
    CStringA sGameMoves;
@@ -225,6 +223,7 @@ void CTournament::Start()
 
       if (!m_bRunning) break;
 
+      const double timeAvailableBeforeSearch = fTimeLeft[nSTM];
       CString sLine = m_CurrEngines[nSTM].Search(CString(sStartingPositionFEN), sMoveList, m_nTC,
          static_cast<long>(fTimeLeft[WHITE]),
          static_cast<long>(fTimeLeft[BLACK]), nInc[WHITE], nInc[BLACK],
@@ -252,7 +251,21 @@ void CTournament::Start()
 
       Log("Took %.1lfms, Left[%c] = %.1lfms", t.GetMS(), nSTM == WHITE ? 'W' : 'B', fTimeLeft[nSTM]);
 
-      if (sLine.IsEmpty() || fTimeLeft[nSTM] <= 0)
+      if (sLine.IsEmpty())
+      {
+         if (t.GetMS() >= timeAvailableBeforeSearch)
+         {
+            Log("RESULT: TIMEOUT");
+            tResult.nResult = nSTM == WHITE ? WHITE_TIMEOUT : BLACK_TIMEOUT;
+         }
+         else
+         {
+            Log("RESULT: ENGINE PROCESS OR PROTOCOL FAILURE");
+            tResult.nResult = nSTM == WHITE ? WHITE_ENGINE_FAILURE : BLACK_ENGINE_FAILURE;
+         }
+         break;
+      }
+      if (fTimeLeft[nSTM] <= 0)
       {
          Log("RESULT: TIMEOUT");
          tResult.nResult = nSTM == WHITE ? WHITE_TIMEOUT : BLACK_TIMEOUT;
@@ -309,7 +322,7 @@ void CTournament::Start()
             if (sGameMoves.GetLength() == 1)
             {
                char sMoveNum[32];
-               sprintf_s(sMoveNum, "%d.. ", nMoveNum);
+               sprintf_s(sMoveNum, "%d... ", nMoveNum);
                sGameMoves.Append(sMoveNum);
             }
             sGameMoves.Append(sSAN);
@@ -359,7 +372,8 @@ void CTournament::Start()
          }
       }
 
-      sMoveList.AppendFormat(_T(" %s"), sMove.MakeLower());
+      sMove.MakeLower();
+      sMoveList.AppendFormat(_T(" %s"), sMove.GetString());
       if (nSTM == WHITE)
       {
       }

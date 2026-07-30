@@ -31,30 +31,36 @@ IDD_LITTLEBLITZER_DIALOG DIALOGEX 0, 0, 710, 505
 STYLE DS_SETFONT | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "LittleBlitzer"
-FONT 8, "Courier New", 400, 0, 0x0
+FONT 9, "Segoe UI", 400, 0, 0x0
 BEGIN
-    PUSHBUTTON      "GO",IDC_START,87,73,52,32
-    EDITTEXT        IDC_STATUS,7,122,697,376,ES_MULTILINE | WS_VSCROLL | WS_HSCROLL
-    PUSHBUTTON      "Load Settings",IDC_TOURNAMENT,422,25,149,14,BS_MULTILINE
+    CONTROL         "Run control",IDC_RUN_GROUP,"Button",BS_OWNERDRAW,80,60,317,54
+    CONTROL         "Options",IDC_OPTIONS_GROUP,"Button",BS_OWNERDRAW,414,60,180,54
+    CONTROL         "Match summary",IDC_MATCH_GROUP,"Button",BS_OWNERDRAW,7,118,697,55
+    CONTROL         "Live results",IDC_RESULTS_GROUP,"Button",BS_OWNERDRAW,7,176,697,322
+    PUSHBUTTON      "Start",IDC_START,87,73,52,32
+    EDITTEXT        IDC_STATUS,14,190,683,301,ES_MULTILINE | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Load settings",IDC_TOURNAMENT,422,25,149,14,BS_MULTILINE
     EDITTEXT        IDC_ENGINE_FILE,81,8,317,13,ES_AUTOHSCROLL
     LTEXT           "Engines file:",IDC_STATIC,8,11,69,8
-    PUSHBUTTON      "Load Engines",IDC_LOAD_ENGINES,422,8,149,14
-    PUSHBUTTON      "STOP",IDC_PAUSE,146,73,52,32,BS_MULTILINE
-    PUSHBUTTON      "...",IDC_OPEN_ENGINES,400,8,14,14,BS_BITMAP
+    PUSHBUTTON      "Load engines",IDC_LOAD_ENGINES,422,8,149,14
+    PUSHBUTTON      "Pause",IDC_PAUSE,146,73,52,32,BS_MULTILINE
+    PUSHBUTTON      "...",IDC_OPEN_ENGINES,400,8,14,14
     EDITTEXT        IDC_TOURN_FILE,81,25,317,13,ES_AUTOHSCROLL
     LTEXT           "Settings file:",IDC_STATIC,8,27,69,8
-    PUSHBUTTON      "...",IDC_OPEN_TOURN,400,25,14,14,BS_BITMAP
+    PUSHBUTTON      "...",IDC_OPEN_TOURN,400,25,14,14
     EDITTEXT        IDC_SAVE_PGN,81,42,317,13,ES_AUTOHSCROLL
     LTEXT           "Save PGN:",IDC_STATIC,8,43,69,8
-    PUSHBUTTON      "Copy",IDC_COPYTEXT,660,95,32,15
-    CTEXT           "",IDC_NUMTHREADS,303,86,52,17
+    PUSHBUTTON      "Copy report",IDC_COPYTEXT,632,95,60,15
+    CTEXT           "",IDC_NUMTHREADS,272,86,78,17
     PUSHBUTTON      "+",IDC_INC,363,73,26,16
     PUSHBUTTON      "-",IDC_DEC,363,89,26,16
-    CONTROL         "Log 1st engine to LittleBlitzer.log",IDC_CHK_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,65,166,14
-    GROUPBOX        "",IDC_STATIC,80,60,317,54
-    CONTROL         "Write illegal moves to file",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,82,166,14
-    CONTROL         "Write game moves to PGN file",IDC_CHK_FULLPGN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,98,166,14
-    CTEXT           "Threads",IDC_STATIC,303,77,52,8
+    CONTROL         "Log 1st engine to LittleBlitzer.log",IDC_CHK_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,74,166,10
+    CONTROL         "Write illegal moves to file",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,86,166,10
+    CONTROL         "Write game moves to PGN file",IDC_CHK_FULLPGN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,98,166,10
+    CTEXT           "Concurrent games",IDC_STATIC,260,77,102,8
+    CONTROL         "",IDC_MATCH_BACKGROUND,"Static",SS_WHITERECT,14,132,683,33
+    LTEXT           "Load engines and settings to begin.",IDC_MATCH_SETTINGS,19,136,673,9,SS_NOPREFIX | SS_PATHELLIPSIS
+    LTEXT           "Ready",IDC_MATCH_TIME,19,151,673,9,SS_NOPREFIX | SS_PATHELLIPSIS
 END
 
 
@@ -64,8 +70,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,91,0,0
- PRODUCTVERSION 2,91,0,0
+ FILEVERSION 2,93,0,0
+ PRODUCTVERSION 2,93,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -82,12 +88,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Kimiensoftware"
             VALUE "FileDescription", "UCI chess engine tournament manager"
-            VALUE "FileVersion", "2.91.0.0"
+            VALUE "FileVersion", "2.93.0.0"
             VALUE "InternalName", "LittleBlitzer.exe"
             VALUE "LegalCopyright", "Copyright Nathan Thom"
             VALUE "OriginalFilename", "LittleBlitzer.exe"
             VALUE "ProductName", "LittleBlitzer"
-            VALUE "ProductVersion", "2.91.0.0"
+            VALUE "ProductVersion", "2.93.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -125,7 +131,7 @@ IDD_LITTLEBLITZER_DIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0,
     0, 0, 0, 0,
-    0, 0, 100, 100,
+    0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -165,9 +171,9 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 IDD_TOURN_SETTINGS DIALOGEX 0, 0, 370, 227
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Tournament Settings"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Tournament settings"
+FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     CONTROL         "Gauntlet",IDC_GAUNTLET,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,17,15,45,14
     CONTROL         "Round-Robin",IDC_ROUNDROBIN,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,67,17,65,10

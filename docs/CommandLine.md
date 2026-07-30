@@ -1,4 +1,4 @@
-# LittleBlitzer 2.91 command-line operation
+# LittleBlitzer 2.93 command-line operation
 
 LittleBlitzer 2.90 added optional unattended tournament operation. A batch run
 loads the existing `Engines.lbe` and `Tournament.lbt` formats, starts without
@@ -9,8 +9,15 @@ LittleBlitzer 2.91 adds a standard PGN `Termination` tag to every game. The
 batch-queue supervisor validates those tags and reports the number of time
 forfeits in its completion record.
 
-Launching `LittleBlitzer.exe` without `--batch` retains the normal graphical
-interface.
+LittleBlitzer 2.92 adds an atomic `<results>.manifest.json` provenance record
+containing the executable, configuration, opening-file, and engine SHA-256
+hashes; actual UCI identities; engine options; the opening seed; and tournament
+settings. Engine process/protocol failures are now reported separately from
+timeouts and illegal moves.
+
+Launching `LittleBlitzer.exe` without `--batch` opens the normal graphical
+interface. Version 2.93 refreshes that interface without changing batch-mode
+arguments or behavior.
 
 ## What changed in 2.90
 
@@ -59,9 +66,9 @@ The process exit code describes the outcome:
 
 | Code | Meaning |
 | ---: | --- |
-| `0` | The requested number of games completed with no illegal-move results. |
+| `0` | The requested number of games completed with no illegal-move or engine-process failure results. |
 | `2` | Argument, input, engine-loading, output-file, or tournament-start failure. |
-| `3` | The tournament completed, but at least one game ended because an engine produced an illegal move or failed to initialize during that game. |
+| `3` | The tournament completed, but at least one game ended because an engine produced an illegal move or suffered an initialization, process, or protocol failure. |
 
 Because LittleBlitzer is a Windows graphical application, use a waiting
 launcher when a script needs the exit code. For example, in PowerShell:
@@ -99,8 +106,8 @@ read while the tournament is running. A successful run has records similar to:
 ```text
 2026-07-27T01:14:39 START engines=C:\tests\match\Engines.lbe settings=C:\tests\match\Tournament.lbt results=C:\tests\match\Results.pgn
 2026-07-27T01:14:39 RUNNING games=1024 parallel=24 engines=2
-2026-07-27T01:14:40 PROGRESS completed=1 total=1024 active=24 illegal=0
-2026-07-27T01:32:08 COMPLETE completed=1024 total=1024 illegal=0 exit=0
+2026-07-27T01:14:40 PROGRESS completed=1 total=1024 active=24 illegal=0 engine_failures=0
+2026-07-27T01:32:08 COMPLETE completed=1024 total=1024 illegal=0 engine_failures=0 exit=0
 ```
 
 Setup failures add an `ERROR` record. A supervising program should check the
@@ -110,6 +117,8 @@ the PGN rather than relying on only one of them.
 ## Files and paths
 
 - Batch mode uses the same engine and tournament file formats as the GUI.
+- Every started run creates `<results>.manifest.json`. Treat that manifest and
+  its PGN as one result set.
 - Quote paths containing spaces.
 - Absolute `Engine=` paths are recommended.
 - The directory containing `Tournament.lbt` becomes the working directory.
@@ -125,6 +134,27 @@ the PGN rather than relying on only one of them.
 
 Do not modify the engine list, tournament settings, opening file, engine
 binaries, or companion network files while a run is active.
+
+## Identity and reproducibility
+
+`LB_Name` remains a display alias. LittleBlitzer 2.92 also preserves the
+engine's real `id name` response and records both values in the run manifest.
+An optional assertion can reject the wrong executable before the tournament:
+
+```text
+Engine=C:\engines\candidate.exe
+LB_Name=Candidate build 32
+LB_ExpectedUCI=Nullstar 032
+Threads=1
+```
+
+`LB_ExpectedUCI` is LittleBlitzer metadata and is not sent as a UCI option.
+Comparison is case-insensitive and otherwise exact.
+
+`Tournament.lbt` may include a nonzero `OpeningSeed` value. A zero or omitted
+value generates a new seed; the selected seed is always recorded in the
+manifest as a decimal string, preserving the full 64-bit value. Reusing a
+recorded seed with unchanged inputs reproduces the opening selection.
 
 ## Running a queue
 
@@ -199,6 +229,7 @@ After each tournament, it verifies:
 - exactly one valid `Termination` tag per completed game;
 - a matching successful `COMPLETE` status record;
 - the absence of `illegal*` files in the results directory; and
+- a readable run manifest whose recorded engine hashes still match; and
 - the SHA-256 hash of the completed PGN.
 
 If a tournament or validation fails, the supervisor stops and does not start

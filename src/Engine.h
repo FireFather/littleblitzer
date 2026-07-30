@@ -18,8 +18,11 @@ public:
 
    char* m_sPath;
    char* m_sName;
+   char* m_sUciName;
    char* m_sLBName;
+   char* m_sExpectedName;
    char* m_sAuthor;
+   CString m_sError;
    long m_nHash;
    bool m_bPonder;
    bool m_bOwnBook;
@@ -34,6 +37,7 @@ public:
    int m_nBufferSize;
    char* m_sBuffer[2];
    HANDLE m_nProcess;
+   HANDLE m_nJob;
 
    void Send(CString sLine);
    void Send(const char format[], ...);

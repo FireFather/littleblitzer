@@ -210,7 +210,7 @@ try {
             $terminations | Where-Object { $_.Line -eq '[Termination "time forfeit"]' }
         ).Count
 
-        $completeStatus = Select-String -LiteralPath $test.Status -Pattern "^.* COMPLETE completed=$($test.Rounds) total=$($test.Rounds) illegal=0 exit=0$" |
+        $completeStatus = Select-String -LiteralPath $test.Status -Pattern "^.* COMPLETE completed=$($test.Rounds) total=$($test.Rounds) illegal=0 engine_failures=0 exit=0$" |
             Select-Object -Last 1
         if ($null -eq $completeStatus) {
             throw "Completion status validation failed for '$($test.Name)': $($test.Status)"
@@ -223,7 +223,22 @@ try {
         }
 
         $pgnHash = (Get-FileHash -LiteralPath $test.Results -Algorithm SHA256).Hash
-        Write-RunLog "TEST_COMPLETE name=$($test.Name) games=$completedGames time_forfeits=$timeForfeits pgn_sha256=$pgnHash"
+        $manifest = $test.Results + '.manifest.json'
+        if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+            throw "Run manifest was not produced for '$($test.Name)': $manifest"
+        }
+        $manifestDocument = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+        if ($manifestDocument.engines.Count -lt 2) {
+            throw "Run manifest validation failed for '$($test.Name)': fewer than two engines were recorded."
+        }
+        foreach ($engine in $manifestDocument.engines) {
+            $actualEngineHash = (Get-FileHash -LiteralPath ([string]$engine.path) -Algorithm SHA256).Hash
+            if ($actualEngineHash -ne [string]$engine.sha256) {
+                throw "Run manifest engine hash mismatch for '$($test.Name)': $($engine.path)"
+            }
+        }
+        $manifestHash = (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash
+        Write-RunLog "TEST_COMPLETE name=$($test.Name) games=$completedGames time_forfeits=$timeForfeits pgn_sha256=$pgnHash manifest_sha256=$manifestHash"
     }
 
     Write-RunLog "QUEUE_COMPLETE tests=$($preparedTests.Count)"

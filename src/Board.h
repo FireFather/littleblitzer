@@ -25,6 +25,10 @@ enum { WHITE, BLACK };
 
 #define NULL_SQUARE	(-1)
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4324) // Cache-line alignment intentionally pads TBoard.
+#endif
 using TBoard = CACHE_ALIGN struct
 {
    BitBoard bbPieces[2][7];
@@ -47,6 +51,9 @@ using TBoard = CACHE_ALIGN struct
 
    BitBoard g_bbCastles[64];
 };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #define WHITE_HALF_BOARD		0x00000000FFFFFFFF
 #define BLACK_HALF_BOARD		0xFFFFFFFF00000000
@@ -378,6 +385,7 @@ void FlopBoard(TBoard* b);
 void Board2FEN(const TBoard* b, char* sFEN);
 void SetBitBoards(TBoard* b);
 bool IsInsufficientMaterial(const TBoard* b);
+void ResetRepetition(const TBoard* b, int nThreadID);
 bool IsRepetition(const TBoard* b, int nThreadID);
 void LoadFEN(TBoard* b, const char a_sFEN[]);
 void InitialiseArrays();

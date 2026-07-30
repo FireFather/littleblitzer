@@ -18,6 +18,13 @@ struct TBatchOptions
    CString error;
 };
 
+class CClickThroughGroup final : public CButton
+{
+protected:
+   afx_msg LRESULT OnNcHitTest(CPoint point);
+   DECLARE_MESSAGE_MAP()
+};
+
 class CLittleBlitzerDlg final : public CDialog
 {
 public:
@@ -34,6 +41,9 @@ protected:
 
    BOOL OnInitDialog() override;
    afx_msg void OnPaint();
+   afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+   afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT drawItem);
+   afx_msg void OnGetMinMaxInfo(MINMAXINFO* minMaxInfo);
    afx_msg HCURSOR OnQueryDragIcon();
    DECLARE_MESSAGE_MAP()
 
@@ -66,18 +76,28 @@ public:
 
    CTimer m_nTimeTaken;
    CEdit m_wndResults;
+   CStatic m_wndMatchSettings;
+   CStatic m_wndMatchTime;
+   CFont m_resultsFont;
+   CBrush m_whiteBackgroundBrush;
+   int m_fixedWindowWidth = 0;
+   CClickThroughGroup m_wndRunGroup;
+   CClickThroughGroup m_wndOptionsGroup;
+   CClickThroughGroup m_wndMatchGroup;
+   CClickThroughGroup m_wndResultsGroup;
 
    bool InitPGN();
+   bool WriteRunManifest(unsigned long long openingSeed);
    bool LoadEngineSettings(bool interactive = true);
    bool LoadTournamentSettings(bool interactive = true);
    bool StartTournament();
-   void WriteBatchStatus(const char* format, ...) const;
+   bool WriteBatchStatus(const char* format, ...) const;
    LRESULT OnBatchStart(WPARAM wParam, LPARAM lParam);
    void FinishBatchWithError(int exitCode, const CString& message);
    static UINT RunTournament(void* pParam);
    LRESULT OnGameDone(WPARAM wParam, LPARAM lParam);
    void UpdateResults();
-   void UpdatePGN(TResult* r);
+   bool UpdatePGN(TResult* r);
    CButton m_wndPause;
    CEdit m_wndEngineFile;
    afx_msg void OnBnClickedLoadEngines();
@@ -111,4 +131,7 @@ private:
    TBatchOptions m_batchOptions;
    int m_nBatchExitCode;
    long m_nBatchIllegalGames;
+   long m_nBatchEngineFailures;
+   bool m_bOutputFailed;
+   unsigned long long m_nConfiguredOpeningSeed;
 };

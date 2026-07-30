@@ -470,7 +470,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             g_bbKnightAttacks[nToSquare] & b->bbPieces[WHITE][PIECE_KNIGHT - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(g_bbKnightAttacks[nToSquare] & b->bbPieces[WHITE][PIECE_KNIGHT - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -481,7 +481,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             g_bbKnightAttacks[nToSquare] & b->bbPieces[BLACK][PIECE_KNIGHT - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(g_bbKnightAttacks[nToSquare] & b->bbPieces[BLACK][PIECE_KNIGHT - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -495,7 +495,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             BISHOP_MOVES(nToSquare) & b->bbPieces[WHITE][PIECE_BISHOP - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(BISHOP_MOVES(nToSquare) & b->bbPieces[WHITE][PIECE_BISHOP - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -506,7 +506,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             BISHOP_MOVES(nToSquare) & b->bbPieces[BLACK][PIECE_BISHOP - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(BISHOP_MOVES(nToSquare) & b->bbPieces[BLACK][PIECE_BISHOP - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -520,7 +520,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             ROOK_MOVES(nToSquare) & b->bbPieces[WHITE][PIECE_ROOK - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(ROOK_MOVES(nToSquare) & b->bbPieces[WHITE][PIECE_ROOK - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -531,7 +531,7 @@ char* GetNotation(const TBoard* b, const TMove m)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
          else if (CountBits(
             ROOK_MOVES(nToSquare) & b->bbPieces[BLACK][PIECE_ROOK - 1] & g_bbMaskFile[FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits(ROOK_MOVES(nToSquare) & b->bbPieces[BLACK][PIECE_ROOK - 1]) > 1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
       }
@@ -547,7 +547,7 @@ char* GetNotation(const TBoard* b, const TMove m)
          else if (CountBits(
             (ROOK_MOVES(nToSquare) | BISHOP_MOVES(nToSquare)) & b->bbPieces[WHITE][PIECE_QUEEN - 1] & g_bbMaskFile[
                FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits((ROOK_MOVES(nToSquare) | BISHOP_MOVES(nToSquare)) & b->bbPieces[WHITE][PIECE_QUEEN - 1]) >
             1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
@@ -561,7 +561,7 @@ char* GetNotation(const TBoard* b, const TMove m)
          else if (CountBits(
             (ROOK_MOVES(nToSquare) | BISHOP_MOVES(nToSquare)) & b->bbPieces[BLACK][PIECE_QUEEN - 1] & g_bbMaskFile[
                FILE(nFromSquare)]) > 1)
-            sNotation[pos++] = '1' + RANK(nFromSquare);
+            sNotation[pos++] = static_cast<char>('1' + RANK(nFromSquare));
          else if (CountBits((ROOK_MOVES(nToSquare) | BISHOP_MOVES(nToSquare)) & b->bbPieces[BLACK][PIECE_QUEEN - 1]) >
             1)
             sNotation[pos++] = 'h' - FILE(nFromSquare);
@@ -579,7 +579,7 @@ char* GetNotation(const TBoard* b, const TMove m)
    }
 
    sNotation[pos++] = 'h' - FILE(nToSquare);
-   sNotation[pos++] = '1' + RANK(nToSquare);
+   sNotation[pos++] = static_cast<char>('1' + RANK(nToSquare));
 
    if (GET_MOVE_MOVED(m) == PIECE_PAWN)
    {
@@ -698,7 +698,7 @@ void MakeMove2(TBoard* b, const TMove m, TUndoMove* undo, const int nThreadID, c
       case PIECE_PAWN:
          if (nToSquare - nFromSquare == 16)
          {
-            b->nEPSquare = nToSquare - 8;
+            b->nEPSquare = static_cast<S8>(nToSquare - 8);
             b->nTransHash ^= g_nHashEPMove[b->nEPSquare];
          }
          if (nMoveType == MOVE_TYPE_EP)
@@ -724,7 +724,7 @@ void MakeMove2(TBoard* b, const TMove m, TUndoMove* undo, const int nThreadID, c
 
             b->nMaterialHash ^= GET_HASH(CountBits(b->bbPieces[WHITE][nPromPiece - 1]), PIECE_WHITE | nPromPiece);
             b->bbPieces[WHITE][nPromPiece - 1] ^= bit[nToSquare];
-            b->nPieces[nToSquare] = PIECE_WHITE | nPromPiece;
+            b->nPieces[nToSquare] = static_cast<U8>(PIECE_WHITE | nPromPiece);
             b->nTransHash ^= GET_HASH(nToSquare, WHITE_PAWN);
             b->nTransHash ^= GET_HASH(nToSquare, PIECE_WHITE | nPromPiece);
             b->nMaterialHash ^= GET_HASH(CountBits(b->bbPieces[WHITE][nPromPiece - 1]), PIECE_WHITE | nPromPiece);
@@ -849,7 +849,7 @@ void MakeMove2(TBoard* b, const TMove m, TUndoMove* undo, const int nThreadID, c
       case PIECE_PAWN:
          if (nFromSquare - nToSquare == 16)
          {
-            b->nEPSquare = nToSquare + 8;
+            b->nEPSquare = static_cast<S8>(nToSquare + 8);
             b->nTransHash ^= g_nHashEPMove[b->nEPSquare];
          }
          if (nMoveType == MOVE_TYPE_EP)
@@ -875,7 +875,7 @@ void MakeMove2(TBoard* b, const TMove m, TUndoMove* undo, const int nThreadID, c
 
             b->nMaterialHash ^= GET_HASH(CountBits(b->bbPieces[BLACK][nPromPiece - 1]), PIECE_BLACK | nPromPiece);
             b->bbPieces[BLACK][nPromPiece - 1] ^= bit[nToSquare];
-            b->nPieces[nToSquare] = PIECE_BLACK | nPromPiece;
+            b->nPieces[nToSquare] = static_cast<U8>(PIECE_BLACK | nPromPiece);
             b->nTransHash ^= GET_HASH(nToSquare, BLACK_PAWN);
             b->nTransHash ^= GET_HASH(nToSquare, PIECE_BLACK | nPromPiece);
             b->nMaterialHash ^= GET_HASH(CountBits(b->bbPieces[BLACK][nPromPiece - 1]), PIECE_BLACK | nPromPiece);
@@ -1073,7 +1073,7 @@ void UnMakeMove(TBoard* b, const TMove m, const TUndoMove* undo, const int nThre
    {
       bbFromTo = bit[nFromSquare] | bit[nToSquare];
       b->nPieces[nFromSquare] = b->nPieces[nToSquare];
-      b->nPieces[nToSquare] = nCapturedSquare;
+      b->nPieces[nToSquare] = static_cast<U8>(nCapturedSquare);
    }
    else
    {
@@ -1285,7 +1285,7 @@ void GameMoves2FEN(char* sMoves, char* sFEN)
          int file1 = -1, rank1 = -1, file2 = -1, rank2 = -1;
          int i = 0, capture = 0, check = 0, prom = 0;
          int piece = 0, from = -1, to = -1, type = MOVE_TYPE_NORMAL;
-         BitBoard mask, frpc = 0;
+         BitBoard mask = ~BitBoard{ 0 }, frpc = 0;
          TUndoMove u;
 
          if (sWord[i] == 'N') piece = PIECE_KNIGHT;

@@ -1,6 +1,11 @@
 #include "StdAfx.h"
 #include "Common.h"
 
+#include <bcrypt.h>
+#include <vector>
+
+#pragma comment(lib, "bcrypt.lib")
+
 #ifdef _MSC_VER
 #pragma warning(disable : 4146)           
 #else
@@ -128,23 +133,22 @@ int RemoveBit(BitBoard& bb)
    return sq;
 }
 
-BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, HANDLE* hProcess)
+BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, HANDLE* hProcess, HANDLE* hJob)
 {
-   if (!sPath || !*sPath || !hProcess) return FALSE;
+   if (!sPath || !*sPath || !hProcess || !hJob) return FALSE;
+   *hProcess = nullptr;
+   *hJob = nullptr;
 
    char szCmdline[1024];
    if (sprintf_s(szCmdline, "\"%s\"", sPath) < 0) return FALSE;
-   PROCESS_INFORMATION piProcInfo;
-   STARTUPINFO siStartInfo;
+   PROCESS_INFORMATION piProcInfo{};
+   STARTUPINFOEXA siStartInfo{};
 
-   ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
-
-   ZeroMemory(&siStartInfo, sizeof(STARTUPINFO));
-   siStartInfo.cb = sizeof(STARTUPINFO);
-   siStartInfo.hStdError = hOut;
-   siStartInfo.hStdOutput = hOut;
-   siStartInfo.hStdInput = hIn;
-   siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+   siStartInfo.StartupInfo.cb = sizeof(STARTUPINFOEXA);
+   siStartInfo.StartupInfo.hStdError = hOut;
+   siStartInfo.StartupInfo.hStdOutput = hOut;
+   siStartInfo.StartupInfo.hStdInput = hIn;
+   siStartInfo.StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
 
    char sCWD[1024];
    const char* backslash = strrchr(sPath, '\\');
@@ -163,30 +167,133 @@ BOOL CreateChildProcess(const char* sPath, const HANDLE hIn, const HANDLE hOut, 
       return FALSE;
    }
 
+   SIZE_T attributeBytes = 0;
+   InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeBytes);
+   std::vector<unsigned char> attributeStorage(attributeBytes);
+   siStartInfo.lpAttributeList = reinterpret_cast<PPROC_THREAD_ATTRIBUTE_LIST>(attributeStorage.data());
+   if (!InitializeProcThreadAttributeList(siStartInfo.lpAttributeList, 1, 0, &attributeBytes))
+      return FALSE;
+
+   HANDLE inheritedHandles[] = { hIn, hOut };
+   if (!UpdateProcThreadAttribute(siStartInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+      inheritedHandles, sizeof(inheritedHandles), nullptr, nullptr))
+   {
+      DeleteProcThreadAttributeList(siStartInfo.lpAttributeList);
+      return FALSE;
+   }
+
    const BOOL bFuncRetn = CreateProcessA(nullptr,
       szCmdline,
       nullptr,
       nullptr,
       TRUE,
-      CREATE_NO_WINDOW,
+      CREATE_NO_WINDOW | CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT,
       nullptr,
       sCWD,
-      &siStartInfo,
+      &siStartInfo.StartupInfo,
       &piProcInfo);
 
-   *hProcess = piProcInfo.hProcess;
+   DeleteProcThreadAttributeList(siStartInfo.lpAttributeList);
 
    if (bFuncRetn == 0)
    {
-      int n = GetLastError();
+      const int n = GetLastError();
       TRACE("CreateProcess failed: %d\n", n);
-   }
-   else
-   {
-      CloseHandle(piProcInfo.hThread);
+      return FALSE;
    }
 
-   return bFuncRetn;
+   HANDLE job = CreateJobObjectA(nullptr, nullptr);
+   if (job)
+   {
+      JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+      limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits))
+         || !AssignProcessToJobObject(job, piProcInfo.hProcess))
+      {
+         CloseHandle(job);
+         job = nullptr;
+      }
+   }
+
+   if (ResumeThread(piProcInfo.hThread) == static_cast<DWORD>(-1))
+   {
+      TerminateProcess(piProcInfo.hProcess, 1);
+      WaitForSingleObject(piProcInfo.hProcess, 5000);
+      CloseHandle(piProcInfo.hThread);
+      CloseHandle(piProcInfo.hProcess);
+      if (job) CloseHandle(job);
+      return FALSE;
+   }
+
+   CloseHandle(piProcInfo.hThread);
+   *hProcess = piProcInfo.hProcess;
+   *hJob = job;
+   return TRUE;
+}
+
+bool GetFileSha256(const char* path, CStringA* digest)
+{
+   if (!path || !*path || !digest) return false;
+   digest->Empty();
+
+   const HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr,
+      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+   if (file == INVALID_HANDLE_VALUE) return false;
+
+   BCRYPT_ALG_HANDLE algorithm = nullptr;
+   BCRYPT_HASH_HANDLE hash = nullptr;
+   DWORD objectBytes = 0;
+   DWORD hashBytes = 0;
+   DWORD copied = 0;
+   bool ok = false;
+   std::vector<unsigned char> object;
+   std::vector<unsigned char> value;
+   std::vector<unsigned char> buffer;
+   char encoded[65]{};
+   static constexpr char hex[] = "0123456789ABCDEF";
+
+   if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0)
+      goto cleanup;
+   if (BCryptGetProperty(algorithm, BCRYPT_OBJECT_LENGTH, reinterpret_cast<PUCHAR>(&objectBytes), sizeof(objectBytes),
+      &copied, 0) < 0)
+      goto cleanup;
+   if (BCryptGetProperty(algorithm, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hashBytes), sizeof(hashBytes), &copied,
+      0) < 0)
+      goto cleanup;
+
+   object.resize(objectBytes);
+   value.resize(hashBytes);
+   buffer.resize(64 * 1024);
+
+   if (BCryptCreateHash(algorithm, &hash, object.data(), objectBytes, nullptr, 0, 0) < 0)
+      goto cleanup;
+
+   while (true)
+   {
+      DWORD bytesRead = 0;
+      if (!ReadFile(file, buffer.data(), static_cast<DWORD>(buffer.size()), &bytesRead, nullptr))
+         goto cleanup;
+      if (bytesRead == 0) break;
+      if (BCryptHashData(hash, buffer.data(), bytesRead, 0) < 0)
+         goto cleanup;
+   }
+   if (BCryptFinishHash(hash, value.data(), hashBytes, 0) < 0)
+      goto cleanup;
+
+   if (hashBytes != 32) goto cleanup;
+   for (DWORD i = 0; i < hashBytes; ++i)
+   {
+      encoded[i * 2] = hex[value[i] >> 4];
+      encoded[i * 2 + 1] = hex[value[i] & 0x0F];
+   }
+   *digest = encoded;
+   ok = true;
+
+cleanup:
+   if (hash) BCryptDestroyHash(hash);
+   if (algorithm) BCryptCloseAlgorithmProvider(algorithm, 0);
+   CloseHandle(file);
+   return ok;
 }
 
 wchar_t* ConvertCharToWCharBecauseMSDontProvideOne(const char* str)

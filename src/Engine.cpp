@@ -13,11 +13,13 @@
 #else
 #endif
 
-CEngine::CEngine() : m_sParameterNames(nullptr), m_sParameterValues(nullptr), m_nProcess(nullptr)
+CEngine::CEngine() : m_sParameterNames(nullptr), m_sParameterValues(nullptr), m_nProcess(nullptr), m_nJob(nullptr)
 {
    m_sPath = nullptr;
    m_sName = nullptr;
+   m_sUciName = nullptr;
    m_sLBName = nullptr;
+   m_sExpectedName = nullptr;
    m_sAuthor = nullptr;
    m_nHash = 0;
    m_bPonder = false;
@@ -77,9 +79,12 @@ char* DuplicateString(const char* value)
 
 void CEngine::CopyConfiguration(const CEngine& other)
 {
+   m_sError.Empty();
    m_sPath = DuplicateString(other.m_sPath);
    m_sName = DuplicateString(other.m_sName);
+   m_sUciName = DuplicateString(other.m_sUciName);
    m_sLBName = DuplicateString(other.m_sLBName);
+   m_sExpectedName = DuplicateString(other.m_sExpectedName);
    m_sAuthor = DuplicateString(other.m_sAuthor);
    m_nHash = other.m_nHash;
    m_bPonder = other.m_bPonder;
@@ -103,7 +108,9 @@ void CEngine::FreeConfiguration()
 {
    delete[] m_sPath;
    delete[] m_sName;
+   delete[] m_sUciName;
    delete[] m_sLBName;
+   delete[] m_sExpectedName;
    delete[] m_sAuthor;
    for (int i = 0; i < m_nNumParameters; ++i)
    {
@@ -112,7 +119,7 @@ void CEngine::FreeConfiguration()
    }
    delete[] m_sParameterNames;
    delete[] m_sParameterValues;
-   m_sPath = m_sName = m_sLBName = m_sAuthor = nullptr;
+   m_sPath = m_sName = m_sUciName = m_sLBName = m_sExpectedName = m_sAuthor = nullptr;
    m_sParameterNames = m_sParameterValues = nullptr;
    m_nNumParameters = 0;
 }
@@ -123,7 +130,8 @@ void CEngine::CloseRuntime()
    m_sBuffer[READ] = nullptr;
    m_nBufferSize = 0;
 
-   for (HANDLE* handle : { &m_nPipeRead[READ], &m_nPipeRead[WRITE], &m_nPipeWrite[READ], &m_nPipeWrite[WRITE], &m_nProcess })
+   for (HANDLE* handle : { &m_nPipeRead[READ], &m_nPipeRead[WRITE], &m_nPipeWrite[READ], &m_nPipeWrite[WRITE], &m_nProcess,
+      &m_nJob })
    {
       if (*handle)
       {
@@ -135,6 +143,7 @@ void CEngine::CloseRuntime()
 
 bool CEngine::Init()
 {
+   m_sError.Empty();
    if (!m_sPath || m_sPath[0] == 0) return false;
 
    CloseRuntime();
@@ -149,21 +158,22 @@ bool CEngine::Init()
    if (!CreatePipe(&m_nPipeRead[READ], &m_nPipeRead[WRITE], &saAttr, 0))
    {
       TRACE("Stdout pipe creation failed\n");
-      CString s;
-      s.Format(_T("Count not create read pipe for %s"), m_sPath);
-      MessageBox(nullptr, s, _T("Error"), MB_OK);
+      m_sError.Format(_T("Could not create the output pipe for %s"), m_sPath);
       CloseRuntime();
       return false;
    }
 
-   SetHandleInformation(m_nPipeRead[READ], HANDLE_FLAG_INHERIT, 0);
+   if (!SetHandleInformation(m_nPipeRead[READ], HANDLE_FLAG_INHERIT, 0))
+   {
+      m_sError.Format(_T("Could not protect the parent output pipe handle for %s"), m_sPath);
+      CloseRuntime();
+      return false;
+   }
    DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
    if (!SetNamedPipeHandleState(m_nPipeRead[READ], &mode, nullptr, nullptr))
    {
       TRACE("SetNamedPipeHandleState failed\n");
-      CString s;
-      s.Format(_T("Count not set named pipe for %s"), m_sPath);
-      MessageBox(nullptr, s, _T("Error"), MB_OK);
+      m_sError.Format(_T("Could not configure the output pipe for %s"), m_sPath);
       CloseRuntime();
       return false;
    }
@@ -171,21 +181,23 @@ bool CEngine::Init()
    if (!CreatePipe(&m_nPipeWrite[READ], &m_nPipeWrite[WRITE], &saAttr, 0))
    {
       TRACE("Stdin pipe creation failed\n");
-      CString s;
-      s.Format(_T("Count not create write pipe for %s"), m_sPath);
-      MessageBox(nullptr, s, _T("Error"), MB_OK);
+      m_sError.Format(_T("Could not create the input pipe for %s"), m_sPath);
       CloseRuntime();
       return false;
    }
 
-   SetHandleInformation(m_nPipeWrite[WRITE], HANDLE_FLAG_INHERIT, 0);
+   if (!SetHandleInformation(m_nPipeWrite[WRITE], HANDLE_FLAG_INHERIT, 0))
+   {
+      m_sError.Format(_T("Could not protect the parent input pipe handle for %s"), m_sPath);
+      CloseRuntime();
+      return false;
+   }
 
-   if (const BOOL fSuccess = CreateChildProcess(m_sPath, m_nPipeWrite[READ], m_nPipeRead[WRITE], &m_nProcess); !fSuccess)
+   if (const BOOL fSuccess = CreateChildProcess(m_sPath, m_nPipeWrite[READ], m_nPipeRead[WRITE], &m_nProcess, &m_nJob);
+      !fSuccess)
    {
       TRACE("Create process failed\n");
-      CString s;
-      s.Format(_T("Could not load process %s (%lu)"), m_sPath, GetLastError());
-      MessageBox(nullptr, s, _T("Error"), MB_OK);
+      m_sError.Format(_T("Could not load process %s (%lu)"), m_sPath, GetLastError());
       CloseRuntime();
       return false;
    }
@@ -204,6 +216,7 @@ bool CEngine::Init()
    {
       if (!GetLine(&sLine))
       {
+         m_sError.Format(_T("Timed out or lost the process while waiting for the UCI name from %s"), m_sPath);
          Quit();
          return false;
       }
@@ -215,12 +228,29 @@ bool CEngine::Init()
    {
       if (!GetLine(&sLine))
       {
+         m_sError.Format(_T("Timed out or lost the process while waiting for uciok from %s"), m_sPath);
          Quit();
          return false;
       }
       long i, j;
       ProcessInput(sLine, &i, &j, &c);
    } while (sLine.Find("uciok") == -1);
+
+   if (!m_sUciName || !*m_sUciName)
+   {
+      m_sError.Format(_T("Engine %s did not provide a usable UCI id name"), m_sPath);
+      Quit();
+      return false;
+   }
+
+   if (m_sExpectedName && _stricmp(m_sExpectedName, m_sUciName) != 0)
+   {
+      m_sError.Format(_T("Engine identity mismatch for %s: expected \"%s\", received \"%s\""), m_sPath, m_sExpectedName,
+         m_sUciName ? m_sUciName : "(missing)");
+      Log("%s", static_cast<const char*>(m_sError));
+      Quit();
+      return false;
+   }
 
    Send("setoption name Hash value %d", m_nHash ? m_nHash : 1);
    Send("setoption name Ponder value %s", m_bPonder ? "true" : "false");
@@ -241,6 +271,7 @@ bool CEngine::Init()
    {
       if (!GetLine(&sLine))
       {
+         m_sError.Format(_T("Timed out or lost the process while waiting for readyok from %s"), m_sPath);
          Quit();
          return false;
       }
@@ -276,17 +307,17 @@ CString CEngine::Search(const CString& sStartingPositionFEN, const CString& sMov
    }
    else
    {
-      startpos.AppendFormat(_T("fen %s"), sStartingPositionFEN);
+      startpos.AppendFormat(_T("fen %s"), sStartingPositionFEN.GetString());
    }
 
    if (sMoves.GetLength() > 0)
    {
-      s.AppendFormat(_T("position %s moves%s"), startpos, sMoves);
+      s.AppendFormat(_T("position %s moves%s"), startpos.GetString(), sMoves.GetString());
       Send(s);
    }
    else
    {
-      s.AppendFormat(_T("position %s"), startpos);
+      s.AppendFormat(_T("position %s"), startpos.GetString());
       Send(s);
    }
    if (nTC == TC_FIXED_TPM)
@@ -360,7 +391,7 @@ void CEngine::Quit()
          {
             char err[100];
             sprintf_s(err, static_cast<const char*>("Terminate %s errored: %lu"), m_sName ? m_sName : "engine", e);
-            AfxMessageBox(err);
+            Log("%s", err);
          }
       }
    }
@@ -381,6 +412,17 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
 
    if (!sWords.GetAt(0).CompareNoCase(_T("info")))
    {
+      bool principalVariation = true;
+      bool boundedScore = false;
+      for (int i = 1; i < sWords.GetCount(); ++i)
+      {
+         if (!sWords.GetAt(i).CompareNoCase(_T("multipv")) && i + 1 < sWords.GetCount())
+            principalVariation = atol(sWords.GetAt(i + 1)) == 1;
+         else if (!sWords.GetAt(i).CompareNoCase(_T("lowerbound"))
+            || !sWords.GetAt(i).CompareNoCase(_T("upperbound")))
+            boundedScore = true;
+      }
+
       for (int i = 1; i + 1 < sWords.GetCount(); i++)
       {
          if (const CString& s = sWords.GetAt(i); !s.CompareNoCase(_T("depth")))
@@ -393,14 +435,16 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
             CString s2 = sWords.GetAt(i + 1);
             *nNPS = atol(s2.GetBuffer());
          }
-         else if (!s.CompareNoCase(_T("cp")))
+         else if (principalVariation && !boundedScore && !s.CompareNoCase(_T("score"))
+            && i + 2 < sWords.GetCount() && !sWords.GetAt(i + 1).CompareNoCase(_T("cp")))
          {
-            CString s2 = sWords.GetAt(i + 1);
+            CString s2 = sWords.GetAt(i + 2);
             *nScore = atol(s2.GetBuffer());
          }
-         else if (!s.CompareNoCase(_T("mate")))
+         else if (principalVariation && !boundedScore && !s.CompareNoCase(_T("score"))
+            && i + 2 < sWords.GetCount() && !sWords.GetAt(i + 1).CompareNoCase(_T("mate")))
          {
-            CString s2 = sWords.GetAt(i + 1);
+            CString s2 = sWords.GetAt(i + 2);
             *nScore = atol(s2.GetBuffer()) * 2;
             if (*nScore < 0) *nScore = -30000 - *nScore;
             else *nScore = 30000 - *nScore;
@@ -416,25 +460,27 @@ void CEngine::ProcessInput(const CString& sLine, long* nDepth, long* nNPS, long*
          {
             nLen += sWords.GetAt(i).GetLength() + 1;
          }
+         delete[] m_sUciName;
+         m_sUciName = new char[nLen + 1];
+         m_sUciName[0] = 0;
+         for (int i = 0; i < sWords.GetSize() - 2; i++)
+         {
+            CString s = sWords.GetAt(2 + i);
+            strcat_s(m_sUciName, nLen + 1, s.GetBuffer());
+            strcat_s(m_sUciName, nLen + 1, " ");
+         }
+         m_sUciName[nLen - 1] = 0;
+
          if (m_sLBName)
          {
             delete[] m_sName;
             m_sName = new char[strlen(m_sLBName) + 1];
-            strncpy(m_sName, m_sLBName, strlen(m_sLBName));
-            m_sName[strlen(m_sLBName)] = 0;
+            strcpy_s(m_sName, strlen(m_sLBName) + 1, m_sLBName);
          }
          else
          {
             delete[] m_sName;
-            m_sName = new char[nLen + 1];
-            m_sName[0] = 0;
-            for (int i = 0; i < sWords.GetSize() - 2; i++)
-            {
-               CString s = sWords.GetAt(2 + i);
-               strcat(m_sName, s.GetBuffer());
-               strcat(m_sName, " ");
-            }
-            m_sName[nLen - 1] = 0;
+            m_sName = DuplicateString(m_sUciName);
          }
       }
       else if (sWords.GetCount() >= 3 && !sWords.GetAt(1).CompareNoCase(_T("author")))
@@ -490,7 +536,7 @@ void CEngine::Send(CString sLine)
       sLine.Append(_T("\n"));
    }
 
-   Log("-->(%s) %s", m_sName ? m_sName : "engine", sLine);
+   Log("-->(%s) %s", m_sName ? m_sName : "engine", sLine.GetString());
 
    if (!WriteFile(m_nPipeWrite[WRITE], sLine, sLine.GetLength(), &dwWritten, nullptr))
    {

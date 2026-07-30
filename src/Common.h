@@ -38,7 +38,7 @@ using BitBoard = uint64_t;
 #define ASSERT(a)
 #endif
 
-constexpr int NUM_TYPES = 13;
+constexpr int NUM_TYPES = 15;
 
 enum
 {
@@ -54,7 +54,9 @@ enum
    BLACK_ILLEGAL,
    ADJ_DRAW,
    ADJ_WHITE_MATES,
-   ADJ_BLACK_MATES
+   ADJ_BLACK_MATES,
+   WHITE_ENGINE_FAILURE,
+   BLACK_ENGINE_FAILURE
 };
 
 extern bool g_bLogging;
@@ -90,5 +92,6 @@ unsigned int LSB(BitBoard b);
 unsigned int MSB(BitBoard b);
 unsigned int CountBits(BitBoard bb);
 int RemoveBit(BitBoard& bb);
-BOOL CreateChildProcess(const char* sPath, HANDLE hIn, HANDLE hOut, HANDLE* hProcess);
+BOOL CreateChildProcess(const char* sPath, HANDLE hIn, HANDLE hOut, HANDLE* hProcess, HANDLE* hJob);
+bool GetFileSha256(const char* path, CStringA* digest);
 wchar_t* ConvertCharToWCharBecauseMSDontProvideOne(const char* str);

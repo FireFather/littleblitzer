@@ -42,6 +42,7 @@ BitBoard g_bbPassedPawnMask[2][64];
 TMovesCache g_tMovesCache[64];
 #endif
 U64 g_nRepetitionHashes[600][MAX_THREADS];
+U64 g_nInitialPositionHashes[MAX_THREADS];
 int g_nRepetitionListHead[MAX_THREADS];
 int g_nGameHalfMoveNum[MAX_THREADS];
 
@@ -298,7 +299,7 @@ void InitialiseArrays()
    {
       for (j = 0; j < 64; j++)
       {
-         g_bbBetween[i][j] = -1;
+         g_bbBetween[i][j] = ~BitBoard{ 0 };
       }
       bb = g_bbDir1Attacks[i];
       while (bb)
@@ -598,7 +599,7 @@ void Board2FEN(const TBoard* b, char* sFEN)
    }
    sFEN[c++] = ' ';
 
-   sprintf(&sFEN[c], "%d %d", b->nFiftyMoveCount, 0);
+   sprintf(&sFEN[c], "%d %d", b->nFiftyMoveCount, 1);
 
 }
 
@@ -1221,12 +1222,21 @@ bool IsInsufficientMaterial(const TBoard* b)
    return false;
 }
 
+void ResetRepetition(const TBoard* b, const int nThreadID)
+{
+   g_nGameHalfMoveNum[nThreadID] = 0;
+   g_nRepetitionListHead[nThreadID] = 0;
+   g_nInitialPositionHashes[nThreadID] = b->nTransHash ^ g_nHash50Move[b->nFiftyMoveCount];
+}
+
 bool IsRepetition(const TBoard* b, const int nThreadID)
 {
+   if (g_nGameHalfMoveNum[nThreadID] < 0 || g_nGameHalfMoveNum[nThreadID] >= 600)
+      return false;
    const U64 nCurrentHash = b->nTransHash ^ g_nHash50Move[b->nFiftyMoveCount];
    g_nRepetitionHashes[g_nGameHalfMoveNum[nThreadID]][nThreadID] = nCurrentHash;
 
-   int num = 1;
+   int num = nCurrentHash == g_nInitialPositionHashes[nThreadID] ? 2 : 1;
    for (int i = g_nGameHalfMoveNum[nThreadID] - 1; i >= g_nRepetitionListHead[nThreadID]; i--)
    {
       if (g_nRepetitionHashes[i][nThreadID] == nCurrentHash)

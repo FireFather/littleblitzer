@@ -29,7 +29,11 @@ int main()
       else if (command.rfind("go", 0) == 0)
       {
          std::string move = "g6g7";
-         if (position.find("7k/5K2/6Q1") == std::string::npos)
+         if (position.find("7k/8/8/8/8/8/8/K7 b") != std::string::npos)
+         {
+            move = "h8g8";
+         }
+         else if (position.find("7k/5K2/6Q1") == std::string::npos)
          {
             const std::vector<std::string> opening = {
                "e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"

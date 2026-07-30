@@ -10,21 +10,55 @@
  
 </div>
 
-LittleBlitzer is a Windows tournament manager and testing application for UCI based chess engines.
+LittleBlitzer is a Windows tournament manager and testing application for UCI chess engines.
 
-It can play ultra fast games using multiple threads for concurrent (up to 128 threads) chess engine testing. 
+It can run up to 128 games concurrently for high-throughput engine testing. LittleBlitzer concurrency is
+separate from each engine's own UCI thread setting.
+
+Tournament results are written as PGN for rating tools such as Ordo, BayesElo, and EloStat.
 
 
-![alt tag](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer.png)
+![LittleBlitzer 2.93 interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.93.png)
 
-While running, LittleBlitzer outputs a ton of useful info:
+The live interface provides:
 
-- loss reasons: (m) mate, (t) timeout, (i) illegal move (a) adjudication
-- draw reasons: (r) repetition, (i) insufficient material, (f) 50 moves (s) stalemate (a) adjudication
-- averages    : (tpm) time per move (d) depth (nps) nodes per second
-  
+- A fixed Match summary with configuration, elapsed time, and estimated time remaining
+- An aligned Results table with points/games, score, W-L-D, milliseconds per move, depth, and NPS
+- Separate Losses and Draws tables with adjudication and termination-reason counts
+- A Copy report button that copies the summary and complete live report as plain text
+
+### Illegal-move diagnostics
+
+Enable **Write illegal moves to file** to create a uniquely named
+`illegal_<engine>_<suffix>` text report whenever an engine returns an illegal move. Each report includes the
+complete board dump and FEN, starting position, full move list, latest engine output, and a ready-to-paste UCI
+`position fen ... moves ...` command for reproducing the failure. Reports are written to the tournament's
+working directory.
+
 ---------
-### LittleBlitzer 2.91 is now available
+### LittleBlitzer 2.93
+30/07/2026
+- Refreshes the interface with native Windows visual styles, Segoe UI controls, and a Consolas results view
+- Organizes Run control, Options, Match summary, and Live results into clear bordered panels
+- Moves static match settings and elapsed/remaining time into the dedicated Match summary
+- Uses a wider, equal-column grid for Results, Losses, and Draws, with adjudication counts clearly identified
+- Labels LittleBlitzer parallelism as concurrent games to distinguish it from engine threads
+- Keeps the main window at its designed width while retaining vertical resizing
+- Copies the Match summary and complete Live results report through the Copy report button
+
+### LittleBlitzer 2.92
+30/07/2026
+- Records the real UCI identity and SHA-256 hash of every engine in an atomic JSON run manifest
+- Optional `LB_ExpectedUCI` engine setting rejects a mislabeled or unexpected executable before play
+- Separately identifies engine process/protocol failures instead of reporting them as time forfeits or illegal moves
+- Uses explicit inherited-handle lists and best-effort Windows Job Object containment for safer concurrent engine launches
+- Stops safely if PGN output can no longer be written and flushed
+- Adds reproducible opening seeds, stricter tournament/FEN validation, and corrected repetition and PGN edge cases
+- Includes automated normal, illegal-move, timeout, process-death, manifest, and PGN regression tests
+- Replaces shifting tab-separated GUI statistics with aligned Results and Terminations tables
+- Uses each engine's UCI `id name` by default, with optional `LB_Name` aliases for self-play or custom labels
+
+### LittleBlitzer 2.91
 29/07/2026
 - Standard PGN `Termination` tags now identify normal finishes, time forfeits, rules infractions, and adjudications
 - Batch-queue validation now verifies every `Termination` tag and reports time-forfeit counts
@@ -43,7 +77,7 @@ While running, LittleBlitzer outputs a ton of useful info:
 03/01/2024
 - Live win% for each engine calculated and displayed
 
-### LittleBlitzer 2.76 is available
+### LittleBlitzer 2.76
 19/12/2023
 - 64 bit
 - concurrency up to 128 threads
@@ -61,10 +95,16 @@ LittleBlitzer is from http://www.kimiensoftware.com
 
 Contact the author at nathanthom@gmail.com
 
-[license-badge]:https://img.shields.io/github/license/FireFather/littleblitzer?style=for-the-badge&label=license&color=success
-[license-link]:https://github.com/FireFather/littleblitzer/blob/master/docs/LICENSE
-[release-badge]:https://img.shields.io/github/v/release/FireFather/littleblitzer?style=for-the-badge&label=official%20release
-[release-link]:https://github.com/FireFather/littleblitzer/releases/latest
-[commits-badge]:https://img.shields.io/github/commits-since/FireFather/littleblitzer/latest?style=for-the-badge
-[commits-link]:https://github.com/FireFather/littleblitzer/commits/main
-[downloads-badge]:https://img.shields.io/github/downloads/FireFather/littleblitzer/total?color=success&style=for-the-badge
+### Historical interface: LittleBlitzer 2.77
+
+For comparison and reference:
+
+![LittleBlitzer 2.77 interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.77.png)
+
+[license-badge]: https://img.shields.io/github/license/FireFather/littleblitzer?style=for-the-badge&label=license&color=success
+[license-link]: https://github.com/FireFather/littleblitzer/blob/master/docs/LICENSE
+[release-badge]: https://img.shields.io/github/v/release/FireFather/littleblitzer?style=for-the-badge&label=official%20release
+[release-link]: https://github.com/FireFather/littleblitzer/releases/latest
+[commits-badge]: https://img.shields.io/github/commits-since/FireFather/littleblitzer/latest?style=for-the-badge
+[commits-link]: https://github.com/FireFather/littleblitzer/commits/master
+[downloads-badge]: https://img.shields.io/github/downloads/FireFather/littleblitzer/total?color=success&style=for-the-badge

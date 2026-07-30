@@ -61,6 +61,13 @@
 #define IDC_OWNBOOK2                    1040
 #define IDC_RANDOMIZE                   1040
 #define IDC_CHK_FULLPGN                 1041
+#define IDC_MATCH_SETTINGS              1042
+#define IDC_MATCH_TIME                  1043
+#define IDC_MATCH_BACKGROUND            1044
+#define IDC_RUN_GROUP                   1045
+#define IDC_OPTIONS_GROUP               1046
+#define IDC_MATCH_GROUP                 1047
+#define IDC_RESULTS_GROUP               1048
 
 // Next default values for new objects
 // 
@@ -68,7 +75,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1042
+#define _APS_NEXT_CONTROL_VALUE         1049
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
