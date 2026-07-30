@@ -17,7 +17,7 @@ separate from each engine's own UCI thread setting.
 
 Tournament results are written as PGN for rating tools such as Ordo, BayesElo, and EloStat.
 
-
+![LittleBlitzer 2.93 light interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.93.png)
 ![LittleBlitzer 3.00 dark interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_3.00.png)
 
 The live interface provides:
