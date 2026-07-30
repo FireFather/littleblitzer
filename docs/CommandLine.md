@@ -1,4 +1,4 @@
-# LittleBlitzer 2.93 command-line operation
+# LittleBlitzer 3.00 command-line operation
 
 LittleBlitzer 2.90 added optional unattended tournament operation. A batch run
 loads the existing `Engines.lbe` and `Tournament.lbt` formats, starts without
@@ -17,7 +17,8 @@ timeouts and illegal moves.
 
 Launching `LittleBlitzer.exe` without `--batch` opens the normal graphical
 interface. Version 2.93 refreshes that interface without changing batch-mode
-arguments or behavior.
+arguments or behavior. Version 3.00 adds a persistent dark appearance option
+without changing batch-mode arguments or behavior.
 
 ## What changed in 2.90
 

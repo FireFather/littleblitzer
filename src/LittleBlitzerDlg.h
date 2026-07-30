@@ -79,7 +79,9 @@ public:
    CStatic m_wndMatchSettings;
    CStatic m_wndMatchTime;
    CFont m_resultsFont;
-   CBrush m_whiteBackgroundBrush;
+   CBrush m_dialogBackgroundBrush;
+   CBrush m_contentBackgroundBrush;
+   CBrush m_inputBackgroundBrush;
    int m_fixedWindowWidth = 0;
    CClickThroughGroup m_wndRunGroup;
    CClickThroughGroup m_wndOptionsGroup;
@@ -123,11 +125,14 @@ public:
    int GetNextRound();
    afx_msg void OnBnClickedChkIllegal();
    afx_msg void OnBnClickedChkFullPGN();
+   afx_msg void OnBnClickedDarkMode();
    CButton m_wndDumpIllegalMoves;
    CButton m_wndFullPGN;
+   CButton m_wndDarkMode;
    static int ReadLine(FILE* f, char* s);
 
 private:
+   void ApplyVisualTheme(bool darkMode);
    TBatchOptions m_batchOptions;
    int m_nBatchExitCode;
    long m_nBatchIllegalGames;

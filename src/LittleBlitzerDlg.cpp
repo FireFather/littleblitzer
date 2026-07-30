@@ -28,6 +28,11 @@ namespace
 {
 constexpr int MAX_ENGINES = 100;
 constexpr char STANDARD_START_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
+constexpr COLORREF DARK_DIALOG_BACKGROUND = RGB(31, 33, 37);
+constexpr COLORREF DARK_CONTENT_BACKGROUND = RGB(22, 24, 28);
+constexpr COLORREF DARK_INPUT_BACKGROUND = RGB(42, 45, 50);
+constexpr COLORREF DARK_TEXT = RGB(232, 234, 237);
+constexpr COLORREF DARK_MUTED_BORDER = RGB(91, 96, 104);
 
 void FreeStartPositions(CTournament& tournament)
 {
@@ -275,6 +280,7 @@ void CLittleBlitzerDlg::DoDataExchange(CDataExchange* pDX)
    DDX_Control(pDX, IDC_TOURNAMENT, m_wndLoadTournament);
    DDX_Control(pDX, IDC_CHK_ILLEGAL, m_wndDumpIllegalMoves);
    DDX_Control(pDX, IDC_CHK_FULLPGN, m_wndFullPGN);
+   DDX_Control(pDX, IDC_CHK_DARK_MODE, m_wndDarkMode);
 }
 
 BEGIN_MESSAGE_MAP(CClickThroughGroup, CButton)
@@ -307,6 +313,7 @@ BEGIN_MESSAGE_MAP(CLittleBlitzerDlg, CDialog)
    ON_BN_CLICKED(IDC_CHK_LOG, &CLittleBlitzerDlg::OnBnClickedChkLog)
    ON_BN_CLICKED(IDC_CHK_ILLEGAL, &CLittleBlitzerDlg::OnBnClickedChkIllegal)
    ON_BN_CLICKED(IDC_CHK_FULLPGN, &CLittleBlitzerDlg::OnBnClickedChkFullPGN)
+   ON_BN_CLICKED(IDC_CHK_DARK_MODE, &CLittleBlitzerDlg::OnBnClickedDarkMode)
 END_MESSAGE_MAP()
 
 BOOL CLittleBlitzerDlg::OnInitDialog()
@@ -334,13 +341,14 @@ BOOL CLittleBlitzerDlg::OnInitDialog()
 
    m_bPaused = false;
 
-   m_whiteBackgroundBrush.CreateSolidBrush(RGB(255, 255, 255));
    if (m_resultsFont.CreatePointFont(90, _T("Consolas")))
       m_wndResults.SetFont(&m_resultsFont);
    m_wndResults.SetWindowText(_T("No engines loaded"));
    m_wndDumpIllegalMoves.SetCheck(g_bDumpIllegalMoves);
    m_wndFullPGN.SetCheck(true);
    g_bFullPGN = true;
+   const bool darkMode = AfxGetApp()->GetProfileInt(_T("Appearance"), _T("DarkMode"), FALSE) != FALSE;
+   ApplyVisualTheme(darkMode);
 
    UpdateNumTourneys();
 
@@ -359,19 +367,62 @@ BOOL CLittleBlitzerDlg::OnInitDialog()
    return TRUE;
 }
 
+void CLittleBlitzerDlg::ApplyVisualTheme(const bool darkMode)
+{
+   g_bDarkMode = darkMode;
+   m_wndDarkMode.SetCheck(darkMode ? BST_CHECKED : BST_UNCHECKED);
+
+   for (CBrush* brush : { &m_dialogBackgroundBrush, &m_contentBackgroundBrush, &m_inputBackgroundBrush })
+   {
+      if (brush->GetSafeHandle())
+         brush->DeleteObject();
+   }
+
+   m_dialogBackgroundBrush.CreateSolidBrush(
+      darkMode ? DARK_DIALOG_BACKGROUND : GetSysColor(COLOR_3DFACE));
+   m_contentBackgroundBrush.CreateSolidBrush(
+      darkMode ? DARK_CONTENT_BACKGROUND : RGB(255, 255, 255));
+   m_inputBackgroundBrush.CreateSolidBrush(
+      darkMode ? DARK_INPUT_BACKGROUND : GetSysColor(COLOR_WINDOW));
+
+   ApplyDarkModeToWindow(m_hWnd, darkMode);
+}
+
 HBRUSH CLittleBlitzerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, const UINT nCtlColor)
 {
    const HBRUSH defaultBrush = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
-   if (!pWnd || !m_whiteBackgroundBrush.GetSafeHandle()) return defaultBrush;
+   if (!pWnd || !m_contentBackgroundBrush.GetSafeHandle()) return defaultBrush;
 
    const int controlId = pWnd->GetDlgCtrlID();
-   if (controlId != IDC_STATUS && controlId != IDC_MATCH_SETTINGS && controlId != IDC_MATCH_TIME
-      && controlId != IDC_MATCH_BACKGROUND)
-      return defaultBrush;
+   const bool contentControl = controlId == IDC_STATUS || controlId == IDC_MATCH_SETTINGS
+      || controlId == IDC_MATCH_TIME || controlId == IDC_MATCH_BACKGROUND;
 
-   pDC->SetTextColor(RGB(0, 0, 0));
-   pDC->SetBkColor(RGB(255, 255, 255));
-   return static_cast<HBRUSH>(m_whiteBackgroundBrush.GetSafeHandle());
+   if (!g_bDarkMode)
+   {
+      if (!contentControl) return defaultBrush;
+      pDC->SetTextColor(RGB(0, 0, 0));
+      pDC->SetBkColor(RGB(255, 255, 255));
+      return static_cast<HBRUSH>(m_contentBackgroundBrush.GetSafeHandle());
+   }
+
+   pDC->SetTextColor(DARK_TEXT);
+   if (contentControl)
+   {
+      pDC->SetBkColor(DARK_CONTENT_BACKGROUND);
+      return static_cast<HBRUSH>(m_contentBackgroundBrush.GetSafeHandle());
+   }
+   if (nCtlColor == CTLCOLOR_EDIT)
+   {
+      pDC->SetBkColor(DARK_INPUT_BACKGROUND);
+      return static_cast<HBRUSH>(m_inputBackgroundBrush.GetSafeHandle());
+   }
+   if (nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_STATIC || nCtlColor == CTLCOLOR_BTN)
+   {
+      pDC->SetBkColor(DARK_DIALOG_BACKGROUND);
+      pDC->SetBkMode(TRANSPARENT);
+      return static_cast<HBRUSH>(m_dialogBackgroundBrush.GetSafeHandle());
+   }
+   return defaultBrush;
 }
 
 void CLittleBlitzerDlg::OnDrawItem(const int nIDCtl, LPDRAWITEMSTRUCT drawItem)
@@ -385,7 +436,10 @@ void CLittleBlitzerDlg::OnDrawItem(const int nIDCtl, LPDRAWITEMSTRUCT drawItem)
 
    CDC* dc = CDC::FromHandle(drawItem->hDC);
    CRect bounds(drawItem->rcItem);
-   dc->FillSolidRect(bounds, GetSysColor(COLOR_3DFACE));
+   const COLORREF backgroundColor = g_bDarkMode ? DARK_DIALOG_BACKGROUND : GetSysColor(COLOR_3DFACE);
+   const COLORREF borderColor = g_bDarkMode ? DARK_MUTED_BORDER : GetSysColor(COLOR_3DSHADOW);
+   const COLORREF textColor = g_bDarkMode ? DARK_TEXT : GetSysColor(COLOR_WINDOWTEXT);
+   dc->FillSolidRect(bounds, backgroundColor);
 
    CWnd* group = GetDlgItem(nIDCtl);
    CString caption;
@@ -406,7 +460,7 @@ void CLittleBlitzerDlg::OnDrawItem(const int nIDCtl, LPDRAWITEMSTRUCT drawItem)
    const int right = bounds.right - borderInset - 1;
    const int bottom = bounds.bottom - borderInset - 1;
 
-   CPen borderPen(PS_SOLID, lineWidth, GetSysColor(COLOR_3DSHADOW));
+   CPen borderPen(PS_SOLID, lineWidth, borderColor);
    CPen* oldPen = dc->SelectObject(&borderPen);
    dc->MoveTo(left, borderY);
    dc->LineTo(captionX - captionGap, borderY);
@@ -418,7 +472,7 @@ void CLittleBlitzerDlg::OnDrawItem(const int nIDCtl, LPDRAWITEMSTRUCT drawItem)
    dc->SelectObject(oldPen);
 
    const int oldBackgroundMode = dc->SetBkMode(TRANSPARENT);
-   const COLORREF oldTextColor = dc->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+   const COLORREF oldTextColor = dc->SetTextColor(textColor);
    dc->TextOut(captionX, bounds.top, caption);
    dc->SetTextColor(oldTextColor);
    dc->SetBkMode(oldBackgroundMode);
@@ -1901,4 +1955,11 @@ void CLittleBlitzerDlg::OnBnClickedChkIllegal()
 void CLittleBlitzerDlg::OnBnClickedChkFullPGN()
 {
    g_bFullPGN = m_wndFullPGN.GetCheck();
+}
+
+void CLittleBlitzerDlg::OnBnClickedDarkMode()
+{
+   const bool darkMode = m_wndDarkMode.GetCheck() == BST_CHECKED;
+   ApplyVisualTheme(darkMode);
+   AfxGetApp()->WriteProfileInt(_T("Appearance"), _T("DarkMode"), darkMode ? TRUE : FALSE);
 }

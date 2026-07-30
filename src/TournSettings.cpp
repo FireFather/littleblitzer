@@ -58,6 +58,7 @@ void CTournSettings::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CTournSettings, CDialogEx)
+   ON_WM_CTLCOLOR()
    ON_BN_CLICKED(IDC_OPENING, &CTournSettings::OnBnClickedOpening)
    ON_BN_CLICKED(IDC_FEN, &CTournSettings::OnBnClickedFen)
    ON_BN_CLICKED(IDC_EPD, &CTournSettings::OnBnClickedEpd)
@@ -71,6 +72,13 @@ END_MESSAGE_MAP()
 BOOL CTournSettings::OnInitDialog()
 {
    CDialogEx::OnInitDialog();
+
+   if (g_bDarkMode)
+   {
+      m_dialogBackgroundBrush.CreateSolidBrush(RGB(31, 33, 37));
+      m_inputBackgroundBrush.CreateSolidBrush(RGB(42, 45, 50));
+   }
+   ApplyDarkModeToWindow(m_hWnd, g_bDarkMode);
 
    CString s;
    s.Format("%ld", m_nRounds);
@@ -100,6 +108,26 @@ BOOL CTournSettings::OnInitDialog()
    UpdateTC();
 
    return FALSE;
+}
+
+HBRUSH CTournSettings::OnCtlColor(CDC* pDC, CWnd* pWnd, const UINT nCtlColor)
+{
+   const HBRUSH defaultBrush = CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
+   if (!g_bDarkMode || !pWnd || !m_dialogBackgroundBrush.GetSafeHandle()) return defaultBrush;
+
+   pDC->SetTextColor(RGB(232, 234, 237));
+   if (nCtlColor == CTLCOLOR_EDIT)
+   {
+      pDC->SetBkColor(RGB(42, 45, 50));
+      return static_cast<HBRUSH>(m_inputBackgroundBrush.GetSafeHandle());
+   }
+   if (nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_STATIC || nCtlColor == CTLCOLOR_BTN)
+   {
+      pDC->SetBkColor(RGB(31, 33, 37));
+      pDC->SetBkMode(TRANSPARENT);
+      return static_cast<HBRUSH>(m_dialogBackgroundBrush.GetSafeHandle());
+   }
+   return defaultBrush;
 }
 
 void CTournSettings::OnBnClickedOpening()

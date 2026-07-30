@@ -54,11 +54,12 @@ BEGIN
     CTEXT           "",IDC_NUMTHREADS,272,86,78,17
     PUSHBUTTON      "+",IDC_INC,363,73,26,16
     PUSHBUTTON      "-",IDC_DEC,363,89,26,16
-    CONTROL         "Log 1st engine to LittleBlitzer.log",IDC_CHK_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,74,166,10
-    CONTROL         "Write illegal moves to file",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,86,166,10
-    CONTROL         "Write game moves to PGN file",IDC_CHK_FULLPGN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,98,166,10
+    CONTROL         "Log 1st engine to LittleBlitzer.log",IDC_CHK_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,70,166,10
+    CONTROL         "Write illegal moves to file",IDC_CHK_ILLEGAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,80,166,10
+    CONTROL         "Write game moves to PGN file",IDC_CHK_FULLPGN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,90,166,10
+    CONTROL         "Dark mode",IDC_CHK_DARK_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,424,100,166,10
     CTEXT           "Concurrent games",IDC_STATIC,260,77,102,8
-    CONTROL         "",IDC_MATCH_BACKGROUND,"Static",SS_WHITERECT,14,132,683,33
+    CONTROL         "",IDC_MATCH_BACKGROUND,"Static",SS_NOTIFY,14,132,683,33
     LTEXT           "Load engines and settings to begin.",IDC_MATCH_SETTINGS,19,136,673,9,SS_NOPREFIX | SS_PATHELLIPSIS
     LTEXT           "Ready",IDC_MATCH_TIME,19,151,673,9,SS_NOPREFIX | SS_PATHELLIPSIS
 END
@@ -70,8 +71,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,93,0,0
- PRODUCTVERSION 2,93,0,0
+ FILEVERSION 3,0,0,0
+ PRODUCTVERSION 3,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -88,12 +89,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Kimiensoftware"
             VALUE "FileDescription", "UCI chess engine tournament manager"
-            VALUE "FileVersion", "2.93.0.0"
+            VALUE "FileVersion", "3.00.0.0"
             VALUE "InternalName", "LittleBlitzer.exe"
             VALUE "LegalCopyright", "Copyright Nathan Thom"
             VALUE "OriginalFilename", "LittleBlitzer.exe"
             VALUE "ProductName", "LittleBlitzer"
-            VALUE "ProductVersion", "2.93.0.0"
+            VALUE "ProductVersion", "3.00.0.0"
         END
     END
     BLOCK "VarFileInfo"

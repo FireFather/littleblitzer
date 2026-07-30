@@ -68,6 +68,7 @@
 #define IDC_OPTIONS_GROUP               1046
 #define IDC_MATCH_GROUP                 1047
 #define IDC_RESULTS_GROUP               1048
+#define IDC_CHK_DARK_MODE               1049
 
 // Next default values for new objects
 // 
@@ -75,7 +76,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1049
+#define _APS_NEXT_CONTROL_VALUE         1050
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

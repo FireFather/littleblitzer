@@ -3,7 +3,7 @@ LittleBlitzer is a Windows tournament manager for UCI chess engines. It was crea
 very fast games concurrently for engine testing. It creates PGN output suitable for rating tools such as
 Ordo, BayesElo, and EloStat.
 
-![LittleBlitzer 2.93 interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.93.png)
+![LittleBlitzer 3.00 dark interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_3.00.png)
 
 Download LittleBlitzer from http://www.kimiensoftware.com
 Contact me at nathanthom@gmail.com
@@ -146,6 +146,13 @@ working directory.
 
 
 ## Version History
+- v3.00 30/7/2026
+  Added a persistent Dark mode checkbox under Options.
+  Applied dark styling to controls, panels, inputs, results, scrollbars, and compatible window chrome.
+  Extended dark styling to the Tournament Settings dialog.
+  Retained the standard light appearance when Dark mode is disabled.
+  Kept GUI configuration files, batch operation, tournament behavior, and output formats compatible.
+
 - v2.93 30/7/2026
   Refreshed the GUI with native Windows visual styles, Segoe UI controls, and a Consolas results view.
   Organized Run control, Options, Match summary, and Live results into clear bordered panels.

@@ -2,9 +2,13 @@
 #include "Common.h"
 
 #include <bcrypt.h>
+#include <dwmapi.h>
+#include <uxtheme.h>
 #include <vector>
 
 #pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4146)           
@@ -17,6 +21,33 @@ char sLogPath[1024];
 bool g_bLogging = false;
 bool g_bDumpIllegalMoves = true;
 bool g_bFullPGN = false;
+bool g_bDarkMode = false;
+
+namespace
+{
+BOOL CALLBACK ApplyDarkModeToChild(const HWND child, const LPARAM enabled)
+{
+   SetWindowTheme(child, enabled ? L"DarkMode_Explorer" : nullptr, nullptr);
+   SendMessage(child, WM_THEMECHANGED, 0, 0);
+   return TRUE;
+}
+}
+
+void ApplyDarkModeToWindow(const HWND window, const bool enabled)
+{
+   if (!IsWindow(window)) return;
+
+   const BOOL useDarkMode = enabled ? TRUE : FALSE;
+   constexpr DWORD immersiveDarkMode = 20;
+   constexpr DWORD immersiveDarkModeBefore20H1 = 19;
+   if (FAILED(DwmSetWindowAttribute(window, immersiveDarkMode, &useDarkMode, sizeof(useDarkMode))))
+      DwmSetWindowAttribute(window, immersiveDarkModeBefore20H1, &useDarkMode, sizeof(useDarkMode));
+
+   SetWindowTheme(window, enabled ? L"DarkMode_Explorer" : nullptr, nullptr);
+   EnumChildWindows(window, ApplyDarkModeToChild, enabled ? 1 : 0);
+   RedrawWindow(window, nullptr, nullptr,
+      RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN);
+}
 
 char* GetFilePath(char* sFilePath)
 {

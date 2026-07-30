@@ -15,6 +15,7 @@ class CTournSettings final : public CDialogEx
 
 protected:
    void DoDataExchange(CDataExchange* pDX) override;
+   afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 
    DECLARE_MESSAGE_MAP()
 
@@ -60,5 +61,7 @@ public:
    afx_msg void OnBnClickedTourn();
    CStatic m_wndTC3;
    CStatic m_wndTC4;
+   CBrush m_dialogBackgroundBrush;
+   CBrush m_inputBackgroundBrush;
    void UpdateTC();
 };

@@ -18,7 +18,7 @@ separate from each engine's own UCI thread setting.
 Tournament results are written as PGN for rating tools such as Ordo, BayesElo, and EloStat.
 
 
-![LittleBlitzer 2.93 interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_2.93.png)
+![LittleBlitzer 3.00 dark interface](https://raw.githubusercontent.com/FireFather/littleblitzer/master/bitmaps/LittleBlitzer_3.00.png)
 
 The live interface provides:
 
@@ -26,6 +26,7 @@ The live interface provides:
 - An aligned Results table with points/games, score, W-L-D, milliseconds per move, depth, and NPS
 - Separate Losses and Draws tables with adjudication and termination-reason counts
 - A Copy report button that copies the summary and complete live report as plain text
+- A persistent Dark mode option for the main window and Tournament Settings dialog
 
 ### Illegal-move diagnostics
 
@@ -36,6 +37,14 @@ complete board dump and FEN, starting position, full move list, latest engine ou
 working directory.
 
 ---------
+### LittleBlitzer 3.00
+30/07/2026
+- Adds a persistent Dark mode checkbox to Options
+- Applies dark styling to controls, panels, inputs, results, scrollbars, and compatible window chrome
+- Extends dark styling to the Tournament Settings dialog
+- Retains the standard light appearance when Dark mode is disabled
+- Keeps GUI configuration files, batch operation, tournament behavior, and output formats compatible
+
 ### LittleBlitzer 2.93
 30/07/2026
 - Refreshes the interface with native Windows visual styles, Segoe UI controls, and a Consolas results view

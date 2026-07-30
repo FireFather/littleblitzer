@@ -62,6 +62,7 @@ enum
 extern bool g_bLogging;
 extern bool g_bDumpIllegalMoves;
 extern bool g_bFullPGN;
+extern bool g_bDarkMode;
 
 using TResult = struct
 {
@@ -88,6 +89,7 @@ char* GetFilePath(char* sFilePath);
 wchar_t* GetFilePath(wchar_t* sFilePath);
 void ResetLog();
 void Log(const char format[], ...);
+void ApplyDarkModeToWindow(HWND window, bool enabled);
 unsigned int LSB(BitBoard b);
 unsigned int MSB(BitBoard b);
 unsigned int CountBits(BitBoard bb);

@@ -6,7 +6,7 @@
 
 #include "LittleBlitzerDlg.h"
 
-#define VERSION	"2.93 x64"
+#define VERSION	"3.00 x64"
 
 class CLittleBlitzerApp final : public CWinAppEx
 {
